@@ -118,10 +118,16 @@ Comandos disponíveis hoje:
 
 - `telemetry-record`;
 - `telemetry-replay`;
+- `exp01-guided-acquire`;
 - `sweep-generate`;
 - `brir-process`;
 - `experiment-run`;
 - `figures-generate`.
+
+Importante: `exp01-guided-acquire` é o comando recomendado para a campanha
+física do Experimento 1. Ele guia o operador posição por posição, registra a
+fase do procedimento em cada amostra e cria o CSV segmentado usado pelas
+métricas.
 
 Importante: `figures-generate` existe, mas atualmente aborta com a mensagem de
 que a geração de figuras deve ser feita depois que métricas existirem. Portanto
@@ -323,7 +329,21 @@ software atual não automatiza esse passo.
 
 ## 8. Medição inicial de deriva
 
-A deriva é gravada como telemetria normal, não como comando especial.
+A forma recomendada é deixar o comando guiado gravar a deriva inicial dentro da
+mesma conexão e do mesmo tare da campanha:
+
+```bash
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run all
+```
+
+O terminal primeiro pede para colocar a plataforma em 0°, conecta ao Tiresias,
+tara no primeiro pacote e registra a deriva inicial por 120 s se
+`drift.measure_before` estiver habilitado.
+
+Se precisar gravar deriva isolada para diagnóstico, ela também pode ser gravada
+como telemetria normal:
 
 1. Plataforma em 0°.
 2. Aguardar 3 s.
@@ -366,37 +386,37 @@ Sequência física:
 
 `0°, 10°, 20°, ..., 350°, 360°`.
 
-O repositório ainda não possui comando de aquisição por posição com prompt,
-Enter, notas, invalidação ou repetição de segmento. O comando existente grava
-apenas telemetria contínua por duração. Portanto, a série crescente deve ser
-gravada como um arquivo contínuo e segmentada manualmente depois.
+O comando recomendado é guiado. Ele mostra no terminal mensagens como:
 
-Comando recomendado:
+- `Conectou ao Tiresias`;
+- `Tarou`;
+- `Mova ate 10 graus`;
+- `Estabilizando`;
+- `Medindo. Nao mova`;
+- `yaw_calibrado=...`;
+- `Posicao armazenada`.
+
+Comando recomendado para a campanha inteira:
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/ascending_raw.csv \
-  --duration-s 520
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run all
 ```
-
-Assumindo 37 posições, 3 s de estabilização, 10 s de gravação por posição e
-aproximadamente 1 s de movimentação/anotação por posição:
-
-`37 * (3 + 10 + 1) = 518 s`, arredondado para 520 s.
 
 Procedimento por posição:
 
 1. Comece em 0°.
-2. Inicie o comando em 0° para que o tare automático use a referência correta.
-3. Marque o tempo real ou cronômetro da posição.
-4. Aguarde 3 s.
-5. Mantenha parado por 10 s.
-6. Anote `run_id=ascending`, `position_index`, `reference_angle_commanded_deg`,
-   `reference_angle_normalized_deg`, início e fim da janela estável.
-7. Mova para o próximo ângulo.
-8. Repita até 360°.
-9. Em 360°, trate como fechamento: `reference_angle_commanded_deg=360`,
-   `reference_angle_normalized_deg=0`, `is_closure_measurement=true`.
+2. O comando conecta e tara no primeiro pacote.
+3. Quando o terminal pedir, mova para o ângulo informado.
+4. Pressione Enter somente depois de alinhar a escala.
+5. O software aplica a estabilização configurada.
+6. O software descarta o transiente inicial.
+7. O software grava o intervalo estacionário analisado.
+8. Não mova a base enquanto aparecer `Medindo. Nao mova`.
+9. O software escreve `run_id`, `run_type`, `position_index`,
+   `reference_angle_commanded_deg`, `reference_angle_normalized_deg`,
+   `is_closure_measurement` e fase do segmento em cada linha.
 
 Tabela mínima:
 
@@ -408,12 +428,12 @@ Tabela mínima:
 | 350 | 350 | false |
 | 360 | 0 | true |
 
-Depois da aquisição, crie manualmente ou por script externo um CSV segmentado
-em:
+Depois da aquisição guiada, o CSV segmentado é criado automaticamente em:
 
 `experiments/exp01_orientation_characterization/processed/segmented_orientation.csv`
 
-Esse arquivo precisa conter as colunas descritas na seção 13.
+Se você usar o método antigo com `telemetry-record`, aí sim esse arquivo precisa
+ser criado manualmente ou por script externo.
 
 ## 10. Execução da série decrescente
 
@@ -421,17 +441,21 @@ Sequência física:
 
 `360°, 350°, 340°, ..., 10°, 0°`.
 
+Se estiver usando `exp01-guided-acquire --run all`, a série decrescente começa
+automaticamente após a crescente.
+
 Como `positive_rotation_direction` está configurado como `clockwise`, a série
 decrescente normalmente exige inverter o sentido físico em relação à série
 crescente. Se sua escala física estiver invertida, siga o sentido documentado no
 campo `positive_rotation_direction` e nas notas.
 
-Comando recomendado:
+Comando isolado para executar apenas a série decrescente:
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/descending_raw.csv \
-  --duration-s 520
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run descending \
+  --no-drift
 ```
 
 Comece com a plataforma em 360°, que é fisicamente 0°. Assim o tare automático
@@ -474,12 +498,13 @@ print(", ".join(str(int(x["reference_angle_commanded_deg"])) for x in seq))
 PY
 ```
 
-Comando recomendado:
+Comando isolado para executar apenas a série aleatória:
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/randomized_raw.csv \
-  --duration-s 520
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run randomized \
+  --no-drift
 ```
 
 Importante: inicie o comando com a plataforma em 0° para realizar o tare. Depois

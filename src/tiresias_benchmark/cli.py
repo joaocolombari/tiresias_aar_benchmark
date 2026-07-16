@@ -191,6 +191,33 @@ def cmd_experiment_run(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2))
 
 
+def cmd_exp01_guided_acquire(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    guided = import_module("tiresias_benchmark.experiments.experiment_01_guided")
+    default_outputs = guided.default_guided_outputs(config, args.run)
+    outputs = guided.GuidedOutputs(
+        raw_csv=Path(args.raw_output) if args.raw_output else default_outputs.raw_csv,
+        segmented_csv=Path(args.segmented_output)
+        if args.segmented_output
+        else default_outputs.segmented_csv,
+        drift_before_csv=Path(args.drift_before_output)
+        if args.drift_before_output
+        else default_outputs.drift_before_csv,
+        drift_after_csv=Path(args.drift_after_output)
+        if args.drift_after_output
+        else default_outputs.drift_after_csv,
+    )
+    asyncio.run(
+        guided.run_guided_experiment_01(
+            config,
+            run_name=args.run,
+            outputs=outputs,
+            device_name=args.device_name,
+            include_drift=not args.no_drift,
+        )
+    )
+
+
 def cmd_figures_generate(_args: argparse.Namespace) -> None:
     raise SystemExit("figure generation is intentionally left to notebooks/scripts after metrics exist")
 
@@ -225,6 +252,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--config", required=True)
     p.add_argument("--output")
     p.set_defaults(func=cmd_experiment_run)
+
+    p = sub.add_parser("exp01-guided-acquire")
+    p.add_argument("--config", required=True)
+    p.add_argument("--run", choices=["all", "ascending", "descending", "randomized"], default="all")
+    p.add_argument("--device-name")
+    p.add_argument("--raw-output")
+    p.add_argument("--segmented-output")
+    p.add_argument("--drift-before-output")
+    p.add_argument("--drift-after-output")
+    p.add_argument("--no-drift", action="store_true")
+    p.set_defaults(func=cmd_exp01_guided_acquire)
 
     p = sub.add_parser("figures-generate")
     p.set_defaults(func=cmd_figures_generate)

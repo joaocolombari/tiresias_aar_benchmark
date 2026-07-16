@@ -37,14 +37,23 @@ python -m tiresias_benchmark telemetry-record \
 
 ## Aquisição
 
-- [ ] Gravar deriva inicial em 0° por 120 s.
-- [ ] Gravar ascending: `0, 10, ..., 350, 360`.
+- [ ] Rodar aquisição guiada:
+
+```bash
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run all
+```
+
+- [ ] Confirmar mensagens: conectou, tarou, mover para ângulo, estabilizando, medindo.
+- [ ] Gravar deriva inicial em 0° por 120 s dentro do fluxo guiado.
+- [ ] Completar ascending: `0, 10, ..., 350, 360`.
 - [ ] Marcar 360° de ascending como fechamento.
-- [ ] Gravar descending: `360, 350, ..., 10, 0`.
+- [ ] Completar descending: `360, 350, ..., 10, 0`.
 - [ ] Marcar 0° final de descending como fechamento.
-- [ ] Gravar randomized com a ordem da seed `20260713`.
+- [ ] Completar randomized com a ordem da seed `20260713`.
 - [ ] Marcar 360° final de randomized como fechamento.
-- [ ] Gravar deriva final em 0° por 120 s.
+- [ ] Gravar deriva final em 0° por 120 s dentro do fluxo guiado.
 
 ## Ordem aleatória atual
 
@@ -56,7 +65,7 @@ python -m tiresias_benchmark telemetry-record \
 
 ## Antes de desmontar
 
-- [ ] Criar `processed/segmented_orientation.csv`.
+- [ ] Confirmar que `processed/segmented_orientation.csv` foi criado.
 - [ ] Conferir 36 direções únicas por run.
 - [ ] Conferir fechamento de cada run.
 - [ ] Conferir duração/amostras de cada segmento.

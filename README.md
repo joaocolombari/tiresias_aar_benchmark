@@ -31,6 +31,7 @@ BLE is optional. All experiment commands accept replay or offline data.
 
 ```bash
 python -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/session.csv
+python -m tiresias_benchmark exp01-guided-acquire --config experiments/exp01_orientation_characterization/config.yaml --run all
 python -m tiresias_benchmark telemetry-replay --input experiments/exp01_orientation_characterization/raw/session.csv --delay-ms 80
 python -m tiresias_benchmark sweep-generate --config configs/acquisition.yaml --output experiments/exp02_brir_measurement/raw/sweep.wav
 python -m tiresias_benchmark experiment-run --experiment 1 --config experiments/exp01_orientation_characterization/config.yaml

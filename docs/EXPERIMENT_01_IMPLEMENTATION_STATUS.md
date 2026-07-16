@@ -30,9 +30,9 @@
 | Tare por teclado | Ausente | Não existe parser/comando para isso em `src/tiresias_benchmark/cli.py:198-230` | Reiniciar aquisição no 0° | Não ideal |
 | Tare por BLE | Ausente | `src/tiresias_benchmark/telemetry/ble_client.py:55-88` só assina notificações | Nenhum sem mudar código/firmware | Não para estático |
 | Registro CSV bruto | Implementado | `src/tiresias_benchmark/telemetry/logger.py:11-50,53-135` | Nenhum | Não |
-| Segmentação por posição angular | Ausente | `src/tiresias_benchmark/cli.py:202-227` não tem comando de segmentação | Criar `processed/segmented_orientation.csv` manualmente | Sim para processamento completo |
-| Prompt interativo por posição | Ausente | `src/tiresias_benchmark/cli.py:98-113` grava por duração | Usar cronômetro/anotações | Não, mas aumenta risco |
-| Invalidar/repetir segmento no software | Ausente | Não há campo/CLI de invalidação em `src/tiresias_benchmark/cli.py:198-230` | Notas manuais e recriar CSV segmentado | Não |
+| Segmentação por posição angular | Implementado no comando guiado | `src/tiresias_benchmark/experiments/experiment_01_guided.py`; `GuidedExperiment01Logger.write` | Usar `telemetry-record` apenas para diagnóstico | Não |
+| Prompt interativo por posição | Implementado | `src/tiresias_benchmark/experiments/experiment_01_guided.py`; `_record_angle_position` | Nenhum | Não |
+| Invalidar/repetir segmento no software | Parcial | O comando guiado permite repetir manualmente rodando uma série isolada, mas não tem tecla de invalidação durante o segmento | Notas manuais; repetir run com `--run` | Não |
 | Resume de aquisição interrompida | Ausente | `src/tiresias_benchmark/telemetry/ble_client.py:84-88` termina por duração | Repetir run ou concatenar manualmente com cuidado | Não recomendado |
 | Processamento `experiment-run --experiment 1` | Implementado | `src/tiresias_benchmark/cli.py:176-191`; `src/tiresias_benchmark/experiments/experiment_01.py:70-117` | Requer CSV segmentado | Não, se CSV existir |
 | Gerador de figuras | Ausente/intencionalmente não implementado | `src/tiresias_benchmark/cli.py:194-195` | Notebook/script externo | Não para aquisição; sim para relatório |
@@ -45,10 +45,8 @@ decodificação BLE, logging e processamento de métricas sobre CSV segmentado.
 
 O que ainda falta para uma campanha totalmente guiada por software:
 
-- comando interativo de aquisição por posição;
-- segmentação automática dos CSVs brutos;
+- comando de invalidação/repetição de segmento durante a aquisição;
 - arquivo automático de notas do operador;
-- invalidação/repetição de segmentos;
 - resume;
 - geração de figuras;
 - preservação de tare entre vários comandos separados.

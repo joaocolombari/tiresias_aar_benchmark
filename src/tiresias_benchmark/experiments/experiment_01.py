@@ -13,7 +13,7 @@ from tiresias_benchmark.metrics.orientation import (
     drift_deg_per_minute,
     normalize_yaw_360_deg,
 )
-from tiresias_benchmark.metrics.telemetry import telemetry_stats
+from tiresias_benchmark.metrics.telemetry import TelemetryStats
 
 
 ALLOWED_ROTATION_DIRECTIONS = {"clockwise", "counterclockwise"}
@@ -70,7 +70,8 @@ def _is_plan_closure(run_type: str, idx: int, angle: int, sequence: list[int]) -
 def run(config: dict) -> dict:
     telemetry_csv = Path(config["telemetry_csv"])
     _validate_coordinate_system(config)
-    rows = list(csv.DictReader(telemetry_csv.open()))
+    with telemetry_csv.open() as file:
+        rows = list(csv.DictReader(file))
     sample_rows = [_sample_from_row(row, config) for row in rows]
     sample_rows = [row for row in sample_rows if row is not None]
     if not sample_rows:
@@ -80,17 +81,7 @@ def run(config: dict) -> dict:
     measured = np.array([row["measured_yaw_360_deg"] for row in global_rows], dtype=float)
     reference = np.array([row["reference_angle_normalized_deg"] for row in global_rows], dtype=float)
     stats = angular_error_stats(reference, measured)
-    host_ns = np.array(
-        [
-            float(row.get("host_monotonic_timestamp_ns") or row.get("host_time_ns"))
-            for row in rows
-            if row.get("host_monotonic_timestamp_ns") or row.get("host_time_ns")
-        ],
-        dtype=float,
-    )
-    seq_values = [row.get("seq", "") for row in rows]
-    seq = np.array([float(value) if value else np.nan for value in seq_values], dtype=float)
-    telemetry = telemetry_stats(host_ns, seq=seq) if len(host_ns) >= 2 else None
+    telemetry = _telemetry_from_sample_rows(sample_rows)
     result = {
         "mae_deg": stats.mae_deg,
         "rmse_deg": stats.rmse_deg,
@@ -101,8 +92,12 @@ def run(config: dict) -> dict:
         "reference_sequences": build_reference_sequences(config),
         "closure_errors_deg": _closure_errors(sample_rows),
     }
-    if len(host_ns) == len(measured) and len(host_ns) > 1:
-        t_s = (host_ns - host_ns[0]) / 1_000_000_000.0
+    global_host_ns = np.array(
+        [row["host_time_ns"] for row in global_rows if row["host_time_ns"] is not None],
+        dtype=float,
+    )
+    if len(global_host_ns) == len(measured) and len(global_host_ns) > 1:
+        t_s = (global_host_ns - global_host_ns[0]) / 1_000_000_000.0
         result["drift_deg_per_minute"] = drift_deg_per_minute(t_s, measured)
     if telemetry:
         result.update(
@@ -127,6 +122,14 @@ def _validate_coordinate_system(config: dict) -> None:
 
 
 def _sample_from_row(row: dict[str, str], config: dict) -> dict | None:
+    segment_kind = row.get("segment_kind", "")
+    if segment_kind and segment_kind != "angle":
+        return None
+
+    include_in_analysis = _bool_field(row.get("include_in_analysis", ""))
+    if include_in_analysis is False:
+        return None
+
     yaw_text = row.get("calibrated_yaw_deg", "")
     if yaw_text == "":
         return None
@@ -152,7 +155,59 @@ def _sample_from_row(row: dict[str, str], config: dict) -> dict | None:
         "measured_yaw_360_deg": measured_360,
         "error_deg": float(circular_difference_deg(measured_360, normalized)),
         "is_closure_measurement": _is_row_closure(row, run_type, commanded, config),
+        "host_time_ns": _host_time_ns(row),
+        "seq": _float_field(row, "seq"),
     }
+
+
+def _telemetry_from_sample_rows(sample_rows: list[dict]) -> TelemetryStats | None:
+    intervals_ms = []
+    lost_packets = 0
+    expected_packets = 0
+    saw_seq = False
+    grouped: dict[tuple, list[dict]] = defaultdict(list)
+    for row in sample_rows:
+        if row["host_time_ns"] is None:
+            continue
+        key = (
+            row["run_id"],
+            row["position_index"],
+            row["is_closure_measurement"],
+        )
+        grouped[key].append(row)
+
+    for rows in grouped.values():
+        host_ns = np.array([row["host_time_ns"] for row in rows], dtype=float)
+        if len(host_ns) >= 2:
+            intervals_ms.extend((np.diff(host_ns) / 1_000_000.0).tolist())
+        seq = np.array([row["seq"] for row in rows if row["seq"] is not None], dtype=float)
+        if len(seq) >= 2:
+            saw_seq = True
+            gaps = np.diff(seq.astype(int)) - 1
+            lost_packets += int(np.sum(np.maximum(gaps, 0)))
+            expected_packets += max(int(seq[-1] - seq[0]), 0)
+
+    if not intervals_ms:
+        return None
+    intervals = np.array(intervals_ms, dtype=float)
+    return TelemetryStats(
+        update_rate_hz=float(1000.0 / np.mean(intervals)),
+        interval_mean_ms=float(np.mean(intervals)),
+        interval_std_ms=float(np.std(intervals)),
+        interval_p95_ms=float(np.percentile(intervals, 95)),
+        interval_p99_ms=float(np.percentile(intervals, 99)),
+        lost_packets=lost_packets if saw_seq else None,
+        packet_loss_percent=(
+            100.0 * lost_packets / expected_packets
+            if saw_seq and expected_packets > 0
+            else (0.0 if saw_seq else None)
+        ),
+    )
+
+
+def _host_time_ns(row: dict[str, str]) -> float | None:
+    value = row.get("host_monotonic_timestamp_ns") or row.get("host_time_ns") or ""
+    return None if value == "" else float(value)
 
 
 def _float_field(row: dict[str, str], key: str) -> float | None:
@@ -227,7 +282,8 @@ def _optional_drift_results(config: dict) -> dict:
 
 
 def _drift_from_csv(path: Path) -> float:
-    rows = list(csv.DictReader(path.open()))
+    with path.open() as file:
+        rows = list(csv.DictReader(file))
     host_ns = []
     yaws = []
     for row in rows:

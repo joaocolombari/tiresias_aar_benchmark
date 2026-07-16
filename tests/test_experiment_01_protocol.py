@@ -1,6 +1,9 @@
+import csv
+import tempfile
 import unittest
+from pathlib import Path
 
-from tiresias_benchmark.experiments.experiment_01 import build_reference_sequences
+from tiresias_benchmark.experiments.experiment_01 import build_reference_sequences, run
 
 
 class Experiment01ProtocolTests(unittest.TestCase):
@@ -24,6 +27,82 @@ class Experiment01ProtocolTests(unittest.TestCase):
         self.assertEqual(sorted(unique_before_closure), list(range(0, 360, 10)))
         self.assertEqual(randomized[-1]["reference_angle_commanded_deg"], 360)
         self.assertTrue(randomized[-1]["is_closure_measurement"])
+
+    def test_run_ignores_guided_non_analysis_and_non_angle_segments(self):
+        fieldnames = [
+            "host_monotonic_timestamp_ns",
+            "calibrated_yaw_deg",
+            "reference_angle_commanded_deg",
+            "reference_angle_normalized_deg",
+            "run_type",
+            "run_id",
+            "position_index",
+            "is_closure_measurement",
+            "segment_kind",
+            "include_in_analysis",
+        ]
+        rows = [
+            {
+                "host_monotonic_timestamp_ns": "0",
+                "calibrated_yaw_deg": "99",
+                "reference_angle_commanded_deg": "0",
+                "reference_angle_normalized_deg": "0",
+                "run_type": "drift_before",
+                "run_id": "drift_before",
+                "position_index": "0",
+                "is_closure_measurement": "false",
+                "segment_kind": "drift_before",
+                "include_in_analysis": "true",
+            },
+            {
+                "host_monotonic_timestamp_ns": "1000000000",
+                "calibrated_yaw_deg": "25",
+                "reference_angle_commanded_deg": "0",
+                "reference_angle_normalized_deg": "0",
+                "run_type": "ascending",
+                "run_id": "ascending",
+                "position_index": "0",
+                "is_closure_measurement": "false",
+                "segment_kind": "angle",
+                "include_in_analysis": "false",
+            },
+            {
+                "host_monotonic_timestamp_ns": "2000000000",
+                "calibrated_yaw_deg": "1",
+                "reference_angle_commanded_deg": "0",
+                "reference_angle_normalized_deg": "0",
+                "run_type": "ascending",
+                "run_id": "ascending",
+                "position_index": "0",
+                "is_closure_measurement": "false",
+                "segment_kind": "angle",
+                "include_in_analysis": "true",
+            },
+            {
+                "host_monotonic_timestamp_ns": "3000000000",
+                "calibrated_yaw_deg": "359",
+                "reference_angle_commanded_deg": "360",
+                "reference_angle_normalized_deg": "0",
+                "run_type": "ascending",
+                "run_id": "ascending",
+                "position_index": "36",
+                "is_closure_measurement": "true",
+                "segment_kind": "angle",
+                "include_in_analysis": "true",
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            csv_path = Path(tmp) / "guided_raw.csv"
+            with csv_path.open("w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+            result = run({"telemetry_csv": str(csv_path)})
+
+        self.assertEqual(result["global_samples_used"], 1)
+        self.assertEqual(result["closure_samples_excluded"], 1)
+        self.assertAlmostEqual(result["mae_deg"], 1.0)
+        self.assertAlmostEqual(result["closure_errors_deg"]["ascending"], -2.0)
 
 
 if __name__ == "__main__":

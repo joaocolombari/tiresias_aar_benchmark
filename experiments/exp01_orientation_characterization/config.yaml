@@ -35,3 +35,5 @@ drift:
   duration_s: 120
   measure_before: true
   measure_after: true
+  before_csv: experiments/exp01_orientation_characterization/processed/drift_before.csv
+  after_csv: experiments/exp01_orientation_characterization/processed/drift_after.csv

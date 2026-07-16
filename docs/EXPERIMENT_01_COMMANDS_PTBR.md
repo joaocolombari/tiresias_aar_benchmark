@@ -89,6 +89,11 @@ Saída esperada: amostras > 0, norma próxima de 1, yaw calibrado perto de 0°.
 
 ## 9. Deriva inicial
 
+Fluxo recomendado atual: use o comando guiado da seção 10, que registra deriva,
+séries angulares e deriva final em uma única conexão/tare.
+
+Se precisar gravar somente a deriva inicial como arquivo isolado:
+
 ```bash
 python -m tiresias_benchmark telemetry-record \
   --output experiments/exp01_orientation_characterization/raw/drift_before_0deg.csv \
@@ -101,6 +106,32 @@ Saída esperada: `raw/drift_before_0deg.csv`.
 
 ## 10. Série crescente
 
+Use preferencialmente o comando guiado para todas as séries:
+
+```bash
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run all
+```
+
+Entradas esperadas:
+
+- Tiresias ligado;
+- plataforma inicialmente em 0°;
+- operador seguindo as instruções exibidas no terminal.
+
+Saídas esperadas:
+
+- CSV bruto guiado em `experiments/exp01_orientation_characterization/raw/`;
+- `experiments/exp01_orientation_characterization/processed/segmented_orientation.csv`;
+- `experiments/exp01_orientation_characterization/processed/drift_before.csv`;
+- `experiments/exp01_orientation_characterization/processed/drift_after.csv`.
+
+O terminal informa eventos como conexão, tare, ângulo alvo, estabilização,
+descarte do transiente, medição estacionária e yaw calibrado em tempo real.
+
+Comando antigo/manual, ainda possível mas não recomendado:
+
 ```bash
 python -m tiresias_benchmark telemetry-record \
   --output experiments/exp01_orientation_characterization/raw/ascending_raw.csv \
@@ -112,6 +143,11 @@ Entrada esperada: operador segue `0, 10, ..., 350, 360` e anota tempos.
 Saída esperada: `raw/ascending_raw.csv`.
 
 ## 11. Série decrescente
+
+Se estiver usando `exp01-guided-acquire --run all`, esta série é guiada
+automaticamente depois da série crescente.
+
+Comando manual isolado, não recomendado salvo diagnóstico:
 
 ```bash
 python -m tiresias_benchmark telemetry-record \
@@ -143,6 +179,11 @@ Saída esperada:
 
 ## 13. Série aleatória
 
+Se estiver usando `exp01-guided-acquire --run all`, a sequência aleatória é
+guiada automaticamente e o terminal mostra cada próximo ângulo.
+
+Comando manual isolado, não recomendado salvo diagnóstico:
+
 ```bash
 python -m tiresias_benchmark telemetry-record \
   --output experiments/exp01_orientation_characterization/raw/randomized_raw.csv \
@@ -167,13 +208,14 @@ Saída esperada: `raw/drift_after_0deg.csv`.
 
 ## 15. Criar CSV segmentado
 
-Não há comando implementado para isso. Criar manualmente ou por script externo:
+Com o comando guiado, este arquivo é criado automaticamente:
 
 ```text
 experiments/exp01_orientation_characterization/processed/segmented_orientation.csv
 ```
 
-Colunas mínimas:
+Se usar os comandos manuais `telemetry-record`, então ainda é necessário criar
+esse arquivo manualmente ou por script externo. Colunas mínimas:
 
 ```text
 run_id,run_type,position_index,reference_angle_commanded_deg,reference_angle_normalized_deg,is_closure_measurement,host_monotonic_timestamp_ns,seq,calibrated_yaw_deg
