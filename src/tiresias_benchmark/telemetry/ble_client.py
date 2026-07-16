@@ -46,44 +46,45 @@ async def record_ble_telemetry(
     calibration = TareCalibration()
     path = Path(output_csv)
 
-    async with BleakClient(device) as client, TelemetryCsvLogger(
-        path, session_id=session_id, max_sources=len(sources)
-    ) as logger:
-        loop = asyncio.get_running_loop()
-        done = loop.create_future()
+    async with BleakClient(device) as client:
+        with TelemetryCsvLogger(path, session_id=session_id, max_sources=len(sources)) as logger:
+            loop = asyncio.get_running_loop()
+            done = loop.create_future()
 
-        def handler(_sender, data: bytearray) -> None:
-            host_time_ns = time.perf_counter_ns()
-            telemetry = decode_packet(bytes(data))
-            calibrated_q = calibration.calibrate_first(telemetry.quaternion)
-            calibrated_yaw = yaw_from_quaternion(calibrated_q)
-            attention = compute_attention(
-                calibrated_q,
-                sources,
-                config.reference_distance_m,
-                config.sigma_deg,
-                config.bmax_db,
-            )
-            logger.write(
-                host_monotonic_timestamp_ns=host_time_ns,
-                telemetry=telemetry,
-                calibrated_yaw_deg=calibrated_yaw,
-                sigma_deg=config.sigma_deg,
-                bmax_db=config.bmax_db,
-                audio_frame_index=None,
-                attention=attention,
-            )
+            def handler(_sender, data: bytearray) -> None:
+                host_time_ns = time.perf_counter_ns()
+                telemetry = decode_packet(bytes(data))
+                calibrated_q = calibration.calibrate_first(telemetry.quaternion)
+                calibrated_yaw = yaw_from_quaternion(calibrated_q)
+                attention = compute_attention(
+                    calibrated_q,
+                    sources,
+                    config.reference_distance_m,
+                    config.sigma_deg,
+                    config.bmax_db,
+                )
+                logger.write(
+                    host_monotonic_timestamp_ns=host_time_ns,
+                    telemetry=telemetry,
+                    calibrated_yaw_deg=calibrated_yaw,
+                    sigma_deg=config.sigma_deg,
+                    bmax_db=config.bmax_db,
+                    audio_frame_index=None,
+                    attention=attention,
+                )
 
-        try:
-            await client.start_notify(TELEMETRY_CHAR_UUID, handler)
-            active_uuid = TELEMETRY_CHAR_UUID
-        except Exception:
-            await client.start_notify(LEGACY_QUATERNION_CHAR_UUID, handler)
-            active_uuid = LEGACY_QUATERNION_CHAR_UUID
+            try:
+                await client.start_notify(TELEMETRY_CHAR_UUID, handler)
+                active_uuid = TELEMETRY_CHAR_UUID
+            except Exception:
+                await client.start_notify(LEGACY_QUATERNION_CHAR_UUID, handler)
+                active_uuid = LEGACY_QUATERNION_CHAR_UUID
 
-        if config.duration_s is None:
-            await done
-        else:
-            await asyncio.sleep(config.duration_s)
-        await client.stop_notify(active_uuid)
+            try:
+                if config.duration_s is None:
+                    await done
+                else:
+                    await asyncio.sleep(config.duration_s)
+            finally:
+                await client.stop_notify(active_uuid)
     return path
