@@ -1,0 +1,3 @@
+simultaneous_wav: experiments/exp06_physical_validation/raw/simultaneous_ab.wav
+isolated_a_wav: experiments/exp06_physical_validation/raw/isolated_a.wav
+isolated_b_wav: experiments/exp06_physical_validation/raw/isolated_b.wav

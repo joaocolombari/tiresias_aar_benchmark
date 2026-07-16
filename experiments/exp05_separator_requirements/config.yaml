@@ -1,0 +1,5 @@
+sigma_deg: [10, 20, 45]
+orientation_delay_ms: [0, 40, 80, 160]
+source_estimate_delay_ms: [0, 40, 80, 160]
+separator_sdr_db: [inf, 20, 10, 5, 0]
+angular_velocity_deg_s: [30, 60, 120]

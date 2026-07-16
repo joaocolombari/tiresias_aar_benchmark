@@ -1,0 +1,15 @@
+sources:
+  - name: source_a
+    azimuth_deg: -45
+    distance_m: 1.0
+  - name: source_b
+    azimuth_deg: 45
+    distance_m: 1.0
+start_yaw_deg: -45
+stop_yaw_deg: 45
+duration_s: 3.0
+control_sample_rate_hz: 100
+angular_velocity_deg_s: 30
+sigma_deg: [10, 20, 30, 45, 60]
+orientation_delay_ms: [0, 20, 40, 80, 120, 160, 200]
+bmax_db: 10.0

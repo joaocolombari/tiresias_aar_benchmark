@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiresias-aar-benchmark"
+version = "0.1.0"
+description = "Offline benchmark tools for Tiresias head-orientation-driven auditory attention experiments"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "soundfile>=0.12",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+ble = ["bleak>=0.21"]
+metrics = ["pystoi>=0.4"]
+dev = ["ruff>=0.5", "pytest>=8"]
+
+[project.scripts]
+tiresias-benchmark = "tiresias_benchmark.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100

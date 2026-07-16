@@ -1,0 +1,15 @@
+sample_rate_hz: 48000
+sweep_start_hz: 20
+sweep_stop_hz: 20000
+sweep_duration_s: 5.0
+sweep_amplitude: 0.5
+pre_silence_s: 1.0
+post_silence_s: 2.0
+speaker_azimuths_deg: [-45, 45]
+head_yaw_deg: [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]
+microphone_channels:
+  left_ear: 0
+  right_ear: 1
+reference_channels:
+  source_a: 2
+  source_b: 3

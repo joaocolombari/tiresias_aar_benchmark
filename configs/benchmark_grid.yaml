@@ -1,0 +1,15 @@
+sources:
+  - name: source_a
+    azimuth_deg: -45
+    distance_m: 1.0
+  - name: source_b
+    azimuth_deg: 45
+    distance_m: 1.0
+head_yaw_deg: [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]
+sigma_deg: [10, 20, 30, 45, 60]
+orientation_delay_ms: [0, 20, 40, 80, 120, 160, 200]
+source_estimate_delay_ms: [0, 40, 80, 160]
+angular_velocity_deg_s: [30, 60, 120]
+separator_sdr_db: [inf, 20, 10, 5, 0]
+bmax_db: 10.0
+reference_distance_m: 1.0

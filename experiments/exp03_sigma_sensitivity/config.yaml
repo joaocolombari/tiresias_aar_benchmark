@@ -1,0 +1,11 @@
+sources:
+  - name: source_a
+    azimuth_deg: -45
+    distance_m: 1.0
+  - name: source_b
+    azimuth_deg: 45
+    distance_m: 1.0
+head_yaw_deg: [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]
+sigma_deg: [10, 20, 30, 45, 60]
+bmax_db: 10.0
+reference_distance_m: 1.0

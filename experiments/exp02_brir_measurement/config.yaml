@@ -1,0 +1,6 @@
+recorded_wav: experiments/exp02_brir_measurement/raw/recorded.wav
+reference_wav: experiments/exp02_brir_measurement/raw/reference.wav
+recorded_channel: 0
+reference_channel: 0
+response_length_samples: 14400
+output_ir_wav: experiments/exp02_brir_measurement/processed/ir.wav
