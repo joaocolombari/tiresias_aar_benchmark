@@ -274,11 +274,46 @@ não como comportamento bruto do sistema:
 py -m tiresias_benchmark exp01-drift-correct --config experiments/exp01_orientation_characterization/config.yaml --input experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv --output-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_drift_corrected.csv --output-json experiments/exp01_orientation_characterization/metrics/exp01_ascending_drift_corrected_metrics.json
 ```
 
-## 18. Figuras
+## 18. Figuras e tabelas finais
 
-Não há comando implementado para gerar as figuras do Experimento 1.
+Depois que os três CSVs segmentados existirem em `processed/`:
 
-O comando abaixo existe, mas aborta:
+```text
+segmented_ascending_*.csv
+segmented_descending_*.csv
+segmented_randomized_*.csv
+```
+
+gere as figuras e tabelas combinadas:
+
+```bash
+py -m tiresias_benchmark figures-generate --config experiments/exp01_orientation_characterization/config.yaml --overwrite
+```
+
+Saídas esperadas:
+
+```text
+experiments/exp01_orientation_characterization/figures/exp01_orientation_summary.svg
+experiments/exp01_orientation_characterization/figures/exp01_drift_correction.svg
+experiments/exp01_orientation_characterization/figures/exp01_ble_timing.svg
+experiments/exp01_orientation_characterization/metrics/exp01_position_summary.csv
+experiments/exp01_orientation_characterization/metrics/exp01_ble_summary.csv
+experiments/exp01_orientation_characterization/metrics/exp01_combined_metrics.json
+experiments/exp01_orientation_characterization/metrics/exp01_results_table.md
+```
+
+Para gerar uma prévia com os runs disponíveis, use:
+
+```bash
+py -m tiresias_benchmark figures-generate --config experiments/exp01_orientation_characterization/config.yaml --allow-missing-runs --overwrite
+```
+
+Use a prévia apenas para inspeção; para o artigo, gere sem
+`--allow-missing-runs`.
+
+## 19. Figuras antigas
+
+O comando antigo abaixo agora foi substituído pelo gerador acima:
 
 ```bash
 py -m tiresias_benchmark figures-generate

@@ -246,8 +246,26 @@ def cmd_exp01_guided_acquire(args: argparse.Namespace) -> None:
     )
 
 
-def cmd_figures_generate(_args: argparse.Namespace) -> None:
-    raise SystemExit("figure generation is intentionally left to notebooks/scripts after metrics exist")
+def cmd_figures_generate(args: argparse.Namespace) -> None:
+    if args.experiment != "1":
+        raise SystemExit("figure generation is currently implemented for experiment 1 only")
+    config = load_yaml(args.config)
+    figure_module = import_module("tiresias_benchmark.experiments.experiment_01_figures")
+    try:
+        outputs = figure_module.generate_experiment_01_figures(
+            config,
+            input_csvs=[Path(item) for item in args.input] if args.input else None,
+            processed_dir=Path(args.processed_dir) if args.processed_dir else None,
+            raw_dir=Path(args.raw_dir) if args.raw_dir else None,
+            output_dir=Path(args.output_dir) if args.output_dir else None,
+            metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
+            require_all_runs=not args.allow_missing_runs,
+            sign_mode=args.sign,
+            overwrite=args.overwrite,
+        )
+    except (FileExistsError, FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps({key: str(value) for key, value in outputs.__dict__.items()}, indent=2))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -305,6 +323,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_exp01_guided_acquire)
 
     p = sub.add_parser("figures-generate")
+    p.add_argument("--experiment", choices=["1"], default="1")
+    p.add_argument("--config", required=True)
+    p.add_argument("--input", action="append", help="Segmented Experiment 1 CSV. Repeat for multiple runs.")
+    p.add_argument("--processed-dir")
+    p.add_argument("--raw-dir")
+    p.add_argument("--output-dir")
+    p.add_argument("--metrics-dir")
+    p.add_argument("--sign", choices=["auto", "normal", "inverted"], default="auto")
+    p.add_argument("--allow-missing-runs", action="store_true")
+    p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_figures_generate)
     return parser
 
