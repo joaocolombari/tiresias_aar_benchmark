@@ -48,9 +48,7 @@ Saída esperada: ajuda dos comandos.
 ## 6. Testar BLE por 3 s
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/ble_probe.csv \
-  --duration-s 3
+py -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/ble_probe.csv --duration-s 3
 ```
 
 Entrada esperada: Tiresias ligado e anunciando como `Tiresias_DK`.
@@ -60,9 +58,7 @@ Saída esperada: `raw/ble_probe.csv`.
 ## 7. Piloto em 0°
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/pilot_0deg.csv \
-  --duration-s 10
+py -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/pilot_0deg.csv --duration-s 10
 ```
 
 Entrada esperada: plataforma parada em 0°.
@@ -95,9 +91,7 @@ séries angulares e deriva final em uma única conexão/tare.
 Se precisar gravar somente a deriva inicial como arquivo isolado:
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/drift_before_0deg.csv \
-  --duration-s 120
+py -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/drift_before_0deg.csv --duration-s 120
 ```
 
 Entrada esperada: plataforma parada em 0°.
@@ -109,9 +103,7 @@ Saída esperada: `raw/drift_before_0deg.csv`.
 Use preferencialmente o comando guiado para todas as séries:
 
 ```bash
-python -m tiresias_benchmark exp01-guided-acquire \
-  --config experiments/exp01_orientation_characterization/config.yaml \
-  --run all
+py -m tiresias_benchmark exp01-guided-acquire --config experiments/exp01_orientation_characterization/config.yaml --run all
 ```
 
 Entradas esperadas:
@@ -197,9 +189,7 @@ Saída esperada: `raw/randomized_raw.csv`.
 ## 14. Deriva final
 
 ```bash
-python -m tiresias_benchmark telemetry-record \
-  --output experiments/exp01_orientation_characterization/raw/drift_after_0deg.csv \
-  --duration-s 120
+py -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/drift_after_0deg.csv --duration-s 120
 ```
 
 Entrada esperada: plataforma parada em 0°.
@@ -224,10 +214,7 @@ run_id,run_type,position_index,reference_angle_commanded_deg,reference_angle_nor
 ## 16. Processar métricas
 
 ```bash
-python -m tiresias_benchmark experiment-run \
-  --experiment 1 \
-  --config experiments/exp01_orientation_characterization/config.yaml \
-  --output experiments/exp01_orientation_characterization/metrics/exp01_metrics.json
+py -m tiresias_benchmark experiment-run --experiment 1 --config experiments/exp01_orientation_characterization/config.yaml --output experiments/exp01_orientation_characterization/metrics/exp01_metrics.json
 ```
 
 Entrada esperada: `processed/segmented_orientation.csv` existe.
@@ -241,5 +228,5 @@ Não há comando implementado para gerar as figuras do Experimento 1.
 O comando abaixo existe, mas aborta:
 
 ```bash
-python -m tiresias_benchmark figures-generate
+py -m tiresias_benchmark figures-generate
 ```

@@ -11,16 +11,11 @@ build/
 *.egg-info/
 
 # Experimental data and generated artifacts
-experiments/**/raw/*
-experiments/**/processed/*
-experiments/**/metrics/*
-experiments/**/figures/*
 !experiments/**/.gitkeep
 !experiments/**/README.md
 *.wav
 *.flac
 *.mp3
-*.csv
 *.npz
 *.npy
 *.png
