@@ -16,6 +16,11 @@ angular-error statistics.
 - Randomized: all 36 unique directions exactly once using the configured seed,
   then a final 360 deg closure measurement.
 
+The recommended acquisition workflow records these runs as three separate
+guided sessions. This keeps each session short enough to inspect immediately
+and limits the effect of long-run drift on operator decisions. The all-in-one
+mode remains available for compatibility.
+
 Each segmented row should store both:
 
 - `reference_angle_commanded_deg`: physical commanded position, preserving 360.
@@ -49,7 +54,7 @@ the explicit modulo normalization above.
 - acquisition time per position: 10 s;
 - discarded transient after positioning: 2 s;
 - analyzed stationary interval: 8 s;
-- static drift before and after campaign: 120 s each.
+- optional static drift before or after a guided session: 120 s each.
 
 The output metrics are angular MAE, RMSE, bias, maximum error, drift, update
 interval, packet loss and per-run closure error.

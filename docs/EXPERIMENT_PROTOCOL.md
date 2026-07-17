@@ -32,7 +32,7 @@ The explicit comparison transformation is:
 This supports yaw represented as either `[-180, 180)` or `[0, 360)` and avoids
 ordinary subtraction at the 0/360 discontinuity.
 
-Three complete runs are acquired:
+Three complete runs are acquired as separate guided sessions by default:
 
 - ascending: `0, 10, ..., 350, 360`;
 - descending: `360, 350, ..., 10, 0`;
@@ -40,8 +40,10 @@ Three complete runs are acquired:
   followed by a final 360 deg closure measurement.
 
 Default timing is 3 s settling, 10 s acquisition, 2 s discarded transient and
-8 s analyzed stationary interval per position. Static drift is measured for
-120 s at 0 deg before and after the angular campaign.
+8 s analyzed stationary interval per position. Static drift can be measured
+for 120 s at 0 deg before or after a guided session when explicitly requested.
+The older all-in-one campaign remains available, but the separated procedure is
+preferred so results can be inspected after each run.
 
 Closure error is reported separately:
 

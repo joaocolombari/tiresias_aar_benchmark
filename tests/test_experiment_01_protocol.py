@@ -3,7 +3,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tiresias_benchmark.experiments.experiment_01 import build_reference_sequences, run
+from tiresias_benchmark.experiments.experiment_01 import (
+    build_reference_sequences,
+    run,
+    write_drift_corrected_csv,
+)
 
 
 class Experiment01ProtocolTests(unittest.TestCase):
@@ -103,6 +107,77 @@ class Experiment01ProtocolTests(unittest.TestCase):
         self.assertEqual(result["closure_samples_excluded"], 1)
         self.assertAlmostEqual(result["mae_deg"], 1.0)
         self.assertAlmostEqual(result["closure_errors_deg"]["ascending"], -2.0)
+
+    def test_posthoc_drift_correction_preserves_raw_and_fits_linear_drift(self):
+        fieldnames = [
+            "host_monotonic_timestamp_ns",
+            "calibrated_yaw_deg",
+            "reference_angle_commanded_deg",
+            "reference_angle_normalized_deg",
+            "run_type",
+            "run_id",
+            "position_index",
+            "is_closure_measurement",
+            "segment_kind",
+            "include_in_analysis",
+        ]
+        rows = []
+        for idx, reference in enumerate(range(0, 360, 10)):
+            drift = 0.25 * idx
+            rows.append(
+                {
+                    "host_monotonic_timestamp_ns": str(idx * 1_000_000_000),
+                    "calibrated_yaw_deg": str(-(reference + drift)),
+                    "reference_angle_commanded_deg": str(reference),
+                    "reference_angle_normalized_deg": str(reference),
+                    "run_type": "ascending",
+                    "run_id": "ascending",
+                    "position_index": str(idx),
+                    "is_closure_measurement": "false",
+                    "segment_kind": "angle",
+                    "include_in_analysis": "true",
+                }
+            )
+        rows.append(
+            {
+                "host_monotonic_timestamp_ns": str(36 * 1_000_000_000),
+                "calibrated_yaw_deg": str(-(0 + 9.0)),
+                "reference_angle_commanded_deg": "360",
+                "reference_angle_normalized_deg": "0",
+                "run_type": "ascending",
+                "run_id": "ascending",
+                "position_index": "36",
+                "is_closure_measurement": "true",
+                "segment_kind": "angle",
+                "include_in_analysis": "true",
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            input_csv = Path(tmp) / "segmented.csv"
+            output_csv = Path(tmp) / "corrected.csv"
+            with input_csv.open("w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+
+            result = write_drift_corrected_csv(
+                input_csv=input_csv,
+                output_csv=output_csv,
+                config={"telemetry_csv": str(input_csv)},
+                overwrite=False,
+            )
+            with output_csv.open() as file:
+                corrected_rows = list(csv.DictReader(file))
+
+        model = result["posthoc_drift_correction"]["model"]
+        metrics = result["posthoc_drift_correction"]["metrics"]
+        self.assertEqual(model["sign_label"], "inverted")
+        self.assertLess(metrics["mae_deg"], 1e-9)
+        self.assertEqual(len(corrected_rows), 37)
+        self.assertEqual(corrected_rows[-1]["reference_angle_commanded_deg"], "360")
+        self.assertIn("yaw_drift_corrected_deg", corrected_rows[0])
+        self.assertIn("error_drift_corrected_deg", corrected_rows[0])
 
 
 if __name__ == "__main__":

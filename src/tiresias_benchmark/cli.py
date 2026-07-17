@@ -175,6 +175,8 @@ def cmd_brir_process(args: argparse.Namespace) -> None:
 
 def cmd_experiment_run(args: argparse.Namespace) -> None:
     config = load_yaml(args.config)
+    if args.telemetry_csv:
+        config["telemetry_csv"] = str(args.telemetry_csv)
     runners = {
         "1": "tiresias_benchmark.experiments.experiment_01",
         "2": "tiresias_benchmark.experiments.experiment_02",
@@ -189,6 +191,30 @@ def cmd_experiment_run(args: argparse.Namespace) -> None:
         with Path(args.output).open("w") as file:
             json.dump(result, file, indent=2)
     print(json.dumps(result, indent=2))
+
+
+def cmd_exp01_drift_correct(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    if args.input:
+        input_csv = Path(args.input)
+    else:
+        input_csv = Path(config["telemetry_csv"])
+    output_csv = Path(args.output_csv or "experiments/exp01_orientation_characterization/processed/segmented_orientation_drift_corrected.csv")
+    output_json = Path(args.output_json or "experiments/exp01_orientation_characterization/metrics/exp01_drift_corrected_metrics.json")
+    experiment_01 = import_module("tiresias_benchmark.experiments.experiment_01")
+    result = experiment_01.write_drift_corrected_csv(
+        input_csv=input_csv,
+        output_csv=output_csv,
+        config=config,
+        sign_mode=args.sign,
+        overwrite=args.overwrite,
+    )
+    output_json.parent.mkdir(parents=True, exist_ok=True)
+    if output_json.exists() and not args.overwrite:
+        raise FileExistsError(f"refusing to overwrite existing file: {output_json}")
+    with output_json.open("w") as file:
+        json.dump(result, file, indent=2)
+    print(json.dumps({"corrected_csv": str(output_csv), "metrics_json": str(output_json), **result}, indent=2))
 
 
 def cmd_exp01_guided_acquire(args: argparse.Namespace) -> None:
@@ -214,6 +240,8 @@ def cmd_exp01_guided_acquire(args: argparse.Namespace) -> None:
             outputs=outputs,
             device_name=args.device_name,
             include_drift=not args.no_drift,
+            measure_drift_before=False if args.no_drift else args.drift_before,
+            measure_drift_after=False if args.no_drift else args.drift_after,
         )
     )
 
@@ -250,8 +278,18 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("experiment-run")
     p.add_argument("--experiment", required=True, choices=["1", "2", "3", "4", "5", "6"])
     p.add_argument("--config", required=True)
+    p.add_argument("--telemetry-csv")
     p.add_argument("--output")
     p.set_defaults(func=cmd_experiment_run)
+
+    p = sub.add_parser("exp01-drift-correct")
+    p.add_argument("--config", required=True)
+    p.add_argument("--input")
+    p.add_argument("--output-csv")
+    p.add_argument("--output-json")
+    p.add_argument("--sign", choices=["auto", "normal", "inverted"], default="auto")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_exp01_drift_correct)
 
     p = sub.add_parser("exp01-guided-acquire")
     p.add_argument("--config", required=True)
@@ -261,6 +299,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--segmented-output")
     p.add_argument("--drift-before-output")
     p.add_argument("--drift-after-output")
+    p.add_argument("--drift-before", action="store_true", default=None)
+    p.add_argument("--drift-after", action="store_true", default=None)
     p.add_argument("--no-drift", action="store_true")
     p.set_defaults(func=cmd_exp01_guided_acquire)
 

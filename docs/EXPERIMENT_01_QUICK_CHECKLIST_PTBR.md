@@ -37,23 +37,44 @@ python -m tiresias_benchmark telemetry-record \
 
 ## Aquisição
 
-- [ ] Rodar aquisição guiada:
+- [ ] Rodar aquisição guiada crescente:
 
 ```bash
 python -m tiresias_benchmark exp01-guided-acquire \
   --config experiments/exp01_orientation_characterization/config.yaml \
-  --run all
+  --run ascending \
+  --no-drift
 ```
 
 - [ ] Confirmar mensagens: conectou, tarou, mover para ângulo, estabilizando, medindo.
-- [ ] Gravar deriva inicial em 0° por 120 s dentro do fluxo guiado.
 - [ ] Completar ascending: `0, 10, ..., 350, 360`.
 - [ ] Marcar 360° de ascending como fechamento.
+- [ ] Processar `processed/segmented_ascending_*.csv` antes de continuar.
+- [ ] Rodar aquisição guiada decrescente:
+
+```bash
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run descending \
+  --no-drift
+```
+
 - [ ] Completar descending: `360, 350, ..., 10, 0`.
 - [ ] Marcar 0° final de descending como fechamento.
+- [ ] Processar `processed/segmented_descending_*.csv` antes de continuar.
+- [ ] Rodar aquisição guiada aleatória:
+
+```bash
+python -m tiresias_benchmark exp01-guided-acquire \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --run randomized \
+  --no-drift
+```
+
 - [ ] Completar randomized com a ordem da seed `20260713`.
 - [ ] Marcar 360° final de randomized como fechamento.
-- [ ] Gravar deriva final em 0° por 120 s dentro do fluxo guiado.
+- [ ] Processar `processed/segmented_randomized_*.csv` antes de desmontar.
+- [ ] Se necessário, medir deriva estática de 120 s antes e/ou depois como gravações separadas.
 
 ## Ordem aleatória atual
 
@@ -65,7 +86,9 @@ python -m tiresias_benchmark exp01-guided-acquire \
 
 ## Antes de desmontar
 
-- [ ] Confirmar que `processed/segmented_orientation.csv` foi criado.
+- [ ] Confirmar que os CSVs `processed/segmented_ascending_*.csv`,
+      `processed/segmented_descending_*.csv` e
+      `processed/segmented_randomized_*.csv` foram criados.
 - [ ] Conferir 36 direções únicas por run.
 - [ ] Conferir fechamento de cada run.
 - [ ] Conferir duração/amostras de cada segmento.
@@ -76,7 +99,19 @@ python -m tiresias_benchmark exp01-guided-acquire \
 python -m tiresias_benchmark experiment-run \
   --experiment 1 \
   --config experiments/exp01_orientation_characterization/config.yaml \
+  --telemetry-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv \
   --output experiments/exp01_orientation_characterization/metrics/exp01_metrics.json
+```
+
+- [ ] Se o drift estiver grande, gerar análise pós-hoc derivada sem alterar o
+      CSV bruto:
+
+```bash
+python -m tiresias_benchmark exp01-drift-correct \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --input experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv \
+  --output-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_drift_corrected.csv \
+  --output-json experiments/exp01_orientation_characterization/metrics/exp01_ascending_drift_corrected_metrics.json
 ```
 
 - [ ] Backup dos CSVs brutos, CSV segmentado, config e notas.

@@ -323,24 +323,27 @@ um novo processo `telemetry-record`; isto muda a referência angular e pode
 invalidar fechamento, deriva e comparações entre posições.
 
 Para a série aleatória, como a primeira posição da ordem padrão é 280°, não
-inicie a gravação já em 280°. Faça o tare com a plataforma parada em 0°, depois
-comece a sequência aleatória e registre as marcações/tempos manualmente. O
-software atual não automatiza esse passo.
+inicie a sessão já em 280°. O comando guiado sempre pede 0° primeiro para
+conectar e tarar; depois ele conduz a sequência aleatória posição por posição.
 
 ## 8. Medição inicial de deriva
 
-A forma recomendada é deixar o comando guiado gravar a deriva inicial dentro da
-mesma conexão e do mesmo tare da campanha:
+A deriva inicial de 120 s é opcional no fluxo separado. Ela é útil para
+caracterizar o drift estático, mas não precisa anteceder obrigatoriamente cada
+série angular.
+
+Se quiser medir deriva junto de uma série específica, use `--drift-before`:
 
 ```bash
 python -m tiresias_benchmark exp01-guided-acquire \
   --config experiments/exp01_orientation_characterization/config.yaml \
-  --run all
+  --run ascending \
+  --drift-before
 ```
 
 O terminal primeiro pede para colocar a plataforma em 0°, conecta ao Tiresias,
 tara no primeiro pacote e registra a deriva inicial por 120 s se
-`drift.measure_before` estiver habilitado.
+`--drift-before` for informado.
 
 Se precisar gravar deriva isolada para diagnóstico, ela também pode ser gravada
 como telemetria normal:
@@ -396,12 +399,13 @@ O comando recomendado é guiado. Ele mostra no terminal mensagens como:
 - `yaw_calibrado=...`;
 - `Posicao armazenada`.
 
-Comando recomendado para a campanha inteira:
+Comando recomendado para a série crescente isolada:
 
 ```bash
 python -m tiresias_benchmark exp01-guided-acquire \
   --config experiments/exp01_orientation_characterization/config.yaml \
-  --run all
+  --run ascending \
+  --no-drift
 ```
 
 Procedimento por posição:
@@ -430,7 +434,7 @@ Tabela mínima:
 
 Depois da aquisição guiada, o CSV segmentado é criado automaticamente em:
 
-`experiments/exp01_orientation_characterization/processed/segmented_orientation.csv`
+`experiments/exp01_orientation_characterization/processed/segmented_ascending_*.csv`
 
 Se você usar o método antigo com `telemetry-record`, aí sim esse arquivo precisa
 ser criado manualmente ou por script externo.
@@ -441,8 +445,9 @@ Sequência física:
 
 `360°, 350°, 340°, ..., 10°, 0°`.
 
-Se estiver usando `exp01-guided-acquire --run all`, a série decrescente começa
-automaticamente após a crescente.
+No fluxo recomendado, a série decrescente é uma nova sessão guiada. Isso permite
+processar a série crescente antes de continuar e evita uma campanha longa demais
+sem inspeção intermediária.
 
 Como `positive_rotation_direction` está configurado como `clockwise`, a série
 decrescente normalmente exige inverter o sentido físico em relação à série
@@ -639,7 +644,18 @@ Checklist pass/fail:
 
 ## 15. Processamento dos dados
 
-O comando implementado processa um único CSV segmentado definido no config:
+O comando implementado processa um único CSV segmentado por vez. Para uma série
+isolada, use `--telemetry-csv`:
+
+```bash
+python -m tiresias_benchmark experiment-run \
+  --experiment 1 \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --telemetry-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv \
+  --output experiments/exp01_orientation_characterization/metrics/exp01_ascending_metrics.json
+```
+
+O fluxo antigo, apontando para o CSV fixo do config, continua disponível:
 
 ```bash
 python -m tiresias_benchmark experiment-run \
@@ -648,10 +664,20 @@ python -m tiresias_benchmark experiment-run \
   --output experiments/exp01_orientation_characterization/metrics/exp01_metrics.json
 ```
 
-Não há comandos separados implementados para processar ascending, descending,
-randomized e drift individualmente. Para isso, crie configs temporários
-apontando `telemetry_csv` para o CSV segmentado desejado, ou filtre manualmente
-os dados.
+Também existe uma análise pós-hoc derivada para inverter automaticamente o sinal
+de yaw quando necessário e ajustar uma regressão linear de drift contra os
+ângulos de referência:
+
+```bash
+python -m tiresias_benchmark exp01-drift-correct \
+  --config experiments/exp01_orientation_characterization/config.yaml \
+  --input experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv \
+  --output-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_drift_corrected.csv \
+  --output-json experiments/exp01_orientation_characterization/metrics/exp01_ascending_drift_corrected_metrics.json
+```
+
+Essa correção não substitui a análise bruta: ela deve ser descrita como
+correção pós-hoc supervisionada.
 
 Cálculos implementados:
 

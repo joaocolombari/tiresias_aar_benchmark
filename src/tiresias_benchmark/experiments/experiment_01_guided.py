@@ -199,14 +199,18 @@ def default_guided_outputs(config: dict, run_name: str) -> GuidedOutputs:
     raw_csv = base / "raw" / f"exp01_guided_{run_name}_{timestamp}.csv"
     if run_name == "all":
         segmented_csv = Path(config.get("telemetry_csv", base / "processed" / "segmented_orientation.csv"))
+        drift = config.get("drift", {})
+        drift_before_csv = Path(drift["before_csv"]) if drift.get("before_csv") else base / "processed" / "drift_before.csv"
+        drift_after_csv = Path(drift["after_csv"]) if drift.get("after_csv") else base / "processed" / "drift_after.csv"
     else:
         segmented_csv = base / "processed" / f"segmented_{run_name}_{timestamp}.csv"
-    drift = config.get("drift", {})
+        drift_before_csv = base / "processed" / f"drift_before_{run_name}_{timestamp}.csv"
+        drift_after_csv = base / "processed" / f"drift_after_{run_name}_{timestamp}.csv"
     return GuidedOutputs(
         raw_csv=raw_csv,
         segmented_csv=segmented_csv,
-        drift_before_csv=Path(drift["before_csv"]) if drift.get("before_csv") else base / "processed" / "drift_before.csv",
-        drift_after_csv=Path(drift["after_csv"]) if drift.get("after_csv") else base / "processed" / "drift_after.csv",
+        drift_before_csv=drift_before_csv,
+        drift_after_csv=drift_after_csv,
     )
 
 
@@ -217,6 +221,8 @@ async def run_guided_experiment_01(
     outputs: GuidedOutputs | None = None,
     device_name: str | None = None,
     include_drift: bool = True,
+    measure_drift_before: bool | None = None,
+    measure_drift_after: bool | None = None,
 ) -> GuidedOutputs:
     try:
         from bleak import BleakClient, BleakScanner
@@ -235,6 +241,16 @@ async def run_guided_experiment_01(
     analyzed_s = float(record_config.get("analyzed_stationary_interval_s", 8.0))
     drift_duration_s = float(drift_config.get("duration_s", 120.0))
     device_name = device_name or config.get("device_name", "Tiresias_DK")
+    if measure_drift_before is None:
+        measure_drift_before = include_drift and run_name == "all" and drift_config.get("measure_before", True)
+    if measure_drift_after is None:
+        measure_drift_after = include_drift and run_name == "all" and drift_config.get("measure_after", True)
+    outputs = GuidedOutputs(
+        raw_csv=outputs.raw_csv,
+        segmented_csv=outputs.segmented_csv,
+        drift_before_csv=outputs.drift_before_csv if measure_drift_before else None,
+        drift_after_csv=outputs.drift_after_csv if measure_drift_after else None,
+    )
 
     state = AcquisitionState()
     state_lock = threading.Lock()
@@ -290,7 +306,7 @@ async def run_guided_experiment_01(
                 print("Tarou: primeiro pacote recebido no 0 graus fisico.")
                 await _print_status_for(state, state_lock, "Estado apos tare")
 
-                if include_drift and run_name == "all" and drift_config.get("measure_before", True):
+                if measure_drift_before:
                     await _record_drift(
                         state,
                         state_lock,
@@ -313,7 +329,7 @@ async def run_guided_experiment_01(
                             analyzed_s=analyzed_s,
                         )
 
-                if include_drift and run_name == "all" and drift_config.get("measure_after", True):
+                if measure_drift_after:
                     await _prompt("\nRetorne fisicamente a plataforma para 0 graus e pressione Enter.")
                     await _record_drift(
                         state,

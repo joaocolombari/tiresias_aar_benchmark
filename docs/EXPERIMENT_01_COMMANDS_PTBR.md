@@ -1,7 +1,9 @@
 # Comandos do Experimento 1
 
-Use estes comandos em ordem. Alguns passos ainda exigem trabalho manual porque
-o repositório não possui comando de segmentação por posição.
+Use estes comandos em ordem. O fluxo recomendado agora é adquirir as séries
+crescente, decrescente e aleatória separadamente. Isso reduz o tempo de cada
+sessão, permite inspecionar resultados gradualmente e evita que uma falha no
+fim da campanha invalide tudo.
 
 ## 1. Entrar no repositório
 
@@ -83,12 +85,11 @@ PY
 
 Saída esperada: amostras > 0, norma próxima de 1, yaw calibrado perto de 0°.
 
-## 9. Deriva inicial
+## 9. Deriva inicial opcional
 
-Fluxo recomendado atual: use o comando guiado da seção 10, que registra deriva,
-séries angulares e deriva final em uma única conexão/tare.
-
-Se precisar gravar somente a deriva inicial como arquivo isolado:
+A deriva estática de 120 s continua cientificamente útil, mas não precisa ser
+repetida obrigatoriamente antes de cada série. Se quiser medir a deriva inicial
+como arquivo isolado:
 
 ```bash
 py -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/drift_before_0deg.csv --duration-s 120
@@ -98,12 +99,12 @@ Entrada esperada: plataforma parada em 0°.
 
 Saída esperada: `raw/drift_before_0deg.csv`.
 
-## 10. Série crescente
+## 10. Série crescente isolada
 
-Use preferencialmente o comando guiado para todas as séries:
+Rode a série crescente sozinha:
 
 ```bash
-py -m tiresias_benchmark exp01-guided-acquire --config experiments/exp01_orientation_characterization/config.yaml --run all
+py -m tiresias_benchmark exp01-guided-acquire --config experiments/exp01_orientation_characterization/config.yaml --run ascending --no-drift
 ```
 
 Entradas esperadas:
@@ -115,12 +116,23 @@ Entradas esperadas:
 Saídas esperadas:
 
 - CSV bruto guiado em `experiments/exp01_orientation_characterization/raw/`;
-- `experiments/exp01_orientation_characterization/processed/segmented_orientation.csv`;
-- `experiments/exp01_orientation_characterization/processed/drift_before.csv`;
-- `experiments/exp01_orientation_characterization/processed/drift_after.csv`.
+- CSV segmentado com timestamp em `experiments/exp01_orientation_characterization/processed/segmented_ascending_*.csv`.
 
 O terminal informa eventos como conexão, tare, ângulo alvo, estabilização,
 descarte do transiente, medição estacionária e yaw calibrado em tempo real.
+
+Para processar imediatamente essa série:
+
+```bash
+py -m tiresias_benchmark experiment-run --experiment 1 --config experiments/exp01_orientation_characterization/config.yaml --telemetry-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv --output experiments/exp01_orientation_characterization/metrics/exp01_ascending_metrics.json
+```
+
+Para gerar também um CSV derivado com inversão de sinal automática e regressão
+linear do drift, somente para análise pós-hoc:
+
+```bash
+py -m tiresias_benchmark exp01-drift-correct --config experiments/exp01_orientation_characterization/config.yaml --input experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv --output-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_drift_corrected.csv --output-json experiments/exp01_orientation_characterization/metrics/exp01_ascending_drift_corrected_metrics.json
+```
 
 Comando antigo/manual, ainda possível mas não recomendado:
 
@@ -134,12 +146,19 @@ Entrada esperada: operador segue `0, 10, ..., 350, 360` e anota tempos.
 
 Saída esperada: `raw/ascending_raw.csv`.
 
-## 11. Série decrescente
+## 11. Série decrescente isolada
 
-Se estiver usando `exp01-guided-acquire --run all`, esta série é guiada
-automaticamente depois da série crescente.
+Rode a série decrescente em outra sessão:
 
-Comando manual isolado, não recomendado salvo diagnóstico:
+```bash
+py -m tiresias_benchmark exp01-guided-acquire --config experiments/exp01_orientation_characterization/config.yaml --run descending --no-drift
+```
+
+Saída esperada: `processed/segmented_descending_*.csv`.
+
+Processe o arquivo dessa série com `experiment-run --telemetry-csv ...`.
+
+Comando manual antigo, não recomendado salvo diagnóstico:
 
 ```bash
 python -m tiresias_benchmark telemetry-record \
@@ -169,10 +188,17 @@ Saída esperada:
 280, 140, 350, 300, 180, 70, 130, 20, 330, 100, 90, 270, 80, 190, 210, 310, 290, 30, 340, 10, 250, 110, 170, 160, 150, 240, 120, 0, 220, 40, 60, 320, 50, 260, 200, 230, 360
 ```
 
-## 13. Série aleatória
+## 13. Série aleatória isolada
 
-Se estiver usando `exp01-guided-acquire --run all`, a sequência aleatória é
-guiada automaticamente e o terminal mostra cada próximo ângulo.
+Rode a sequência aleatória em outra sessão:
+
+```bash
+py -m tiresias_benchmark exp01-guided-acquire --config experiments/exp01_orientation_characterization/config.yaml --run randomized --no-drift
+```
+
+Saída esperada: `processed/segmented_randomized_*.csv`.
+
+Processe o arquivo dessa série com `experiment-run --telemetry-csv ...`.
 
 Comando manual isolado, não recomendado salvo diagnóstico:
 
@@ -186,7 +212,7 @@ Entrada esperada: iniciar em 0° para tare, depois seguir a ordem aleatória.
 
 Saída esperada: `raw/randomized_raw.csv`.
 
-## 14. Deriva final
+## 14. Deriva final opcional
 
 ```bash
 py -m tiresias_benchmark telemetry-record --output experiments/exp01_orientation_characterization/raw/drift_after_0deg.csv --duration-s 120
@@ -198,11 +224,18 @@ Saída esperada: `raw/drift_after_0deg.csv`.
 
 ## 15. Criar CSV segmentado
 
-Com o comando guiado, este arquivo é criado automaticamente:
+Com o comando guiado por série, os arquivos segmentados são criados
+automaticamente com timestamp:
 
 ```text
-experiments/exp01_orientation_characterization/processed/segmented_orientation.csv
+experiments/exp01_orientation_characterization/processed/segmented_ascending_*.csv
+experiments/exp01_orientation_characterization/processed/segmented_descending_*.csv
+experiments/exp01_orientation_characterization/processed/segmented_randomized_*.csv
 ```
+
+O arquivo fixo `processed/segmented_orientation.csv` ainda é usado apenas pelo
+fluxo antigo `--run all` ou quando você copia explicitamente um CSV para esse
+nome.
 
 Se usar os comandos manuais `telemetry-record`, então ainda é necessário criar
 esse arquivo manualmente ou por script externo. Colunas mínimas:
@@ -213,6 +246,15 @@ run_id,run_type,position_index,reference_angle_commanded_deg,reference_angle_nor
 
 ## 16. Processar métricas
 
+Para uma série isolada, informe explicitamente o CSV:
+
+```bash
+py -m tiresias_benchmark experiment-run --experiment 1 --config experiments/exp01_orientation_characterization/config.yaml --telemetry-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv --output experiments/exp01_orientation_characterization/metrics/exp01_ascending_metrics.json
+```
+
+No fluxo antigo com `processed/segmented_orientation.csv`, o comando abaixo
+continua funcionando:
+
 ```bash
 py -m tiresias_benchmark experiment-run --experiment 1 --config experiments/exp01_orientation_characterization/config.yaml --output experiments/exp01_orientation_characterization/metrics/exp01_metrics.json
 ```
@@ -221,7 +263,18 @@ Entrada esperada: `processed/segmented_orientation.csv` existe.
 
 Saída esperada: `metrics/exp01_metrics.json`.
 
-## 17. Figuras
+## 17. Correção pós-hoc de drift
+
+Use este comando quando quiser estimar uma regressão linear de drift a partir
+dos próprios ângulos de referência. Ele preserva o CSV original e cria colunas
+derivadas. Essa correção deve ser reportada como análise pós-hoc supervisionada,
+não como comportamento bruto do sistema:
+
+```bash
+py -m tiresias_benchmark exp01-drift-correct --config experiments/exp01_orientation_characterization/config.yaml --input experiments/exp01_orientation_characterization/processed/segmented_ascending_YYYYMMDD_HHMMSS.csv --output-csv experiments/exp01_orientation_characterization/processed/segmented_ascending_drift_corrected.csv --output-json experiments/exp01_orientation_characterization/metrics/exp01_ascending_drift_corrected_metrics.json
+```
+
+## 18. Figuras
 
 Não há comando implementado para gerar as figuras do Experimento 1.
 

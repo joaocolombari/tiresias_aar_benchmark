@@ -109,6 +109,7 @@ def run(config: dict) -> dict:
             }
         )
     result.update(_optional_drift_results(config))
+    result.update(_posthoc_drift_correction_results(sample_rows))
     return result
 
 
@@ -157,6 +158,202 @@ def _sample_from_row(row: dict[str, str], config: dict) -> dict | None:
         "is_closure_measurement": _is_row_closure(row, run_type, commanded, config),
         "host_time_ns": _host_time_ns(row),
         "seq": _float_field(row, "seq"),
+    }
+
+
+def write_drift_corrected_csv(
+    *,
+    input_csv: Path,
+    output_csv: Path,
+    config: dict,
+    sign_mode: str = "auto",
+    overwrite: bool = False,
+) -> dict:
+    if output_csv.exists() and not overwrite:
+        raise FileExistsError(f"refusing to overwrite existing file: {output_csv}")
+    with input_csv.open() as file:
+        rows = list(csv.DictReader(file))
+        fieldnames = list(rows[0].keys()) if rows else []
+
+    sample_rows = [_sample_from_row(row, config) for row in rows]
+    fit_rows = [row for row in sample_rows if row is not None]
+    model = _fit_posthoc_drift_model(fit_rows, sign_mode=sign_mode)
+    extra_fields = [
+        "yaw_sign_corrected_deg",
+        "drift_model_deg",
+        "yaw_drift_corrected_deg",
+        "error_raw_deg",
+        "error_sign_corrected_deg",
+        "error_drift_corrected_deg",
+    ]
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    with output_csv.open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames + [field for field in extra_fields if field not in fieldnames])
+        writer.writeheader()
+        for raw, sample in zip(rows, sample_rows):
+            row = dict(raw)
+            if sample is not None and sample["host_time_ns"] is not None:
+                derived = _corrected_fields_for_sample(sample, model)
+                row.update(derived)
+            writer.writerow(row)
+    return _posthoc_drift_correction_results(fit_rows, sign_mode=sign_mode)
+
+
+def _posthoc_drift_correction_results(sample_rows: list[dict], sign_mode: str = "auto") -> dict:
+    model = _fit_posthoc_drift_model(sample_rows, sign_mode=sign_mode)
+    candidates = {
+        "normal": _stats_for_signed_rows(sample_rows, sign=1.0),
+        "inverted": _stats_for_signed_rows(sample_rows, sign=-1.0),
+    }
+    corrected = _stats_for_drift_corrected_rows(sample_rows, model)
+    return {
+        "orientation_sign_candidates": candidates,
+        "posthoc_drift_correction": {
+            "model": {
+                "yaw_sign": model["sign"],
+                "sign_label": "normal" if model["sign"] > 0 else "inverted",
+                "slope_deg_per_minute": model["slope_deg_per_s"] * 60.0,
+                "intercept_deg": model["intercept_deg"],
+                "fit_samples": model["fit_samples"],
+                "fit_duration_s": model["fit_duration_s"],
+                "uses_reference_angles": True,
+                "interpretation": "post-hoc supervised correction for analysis only",
+            },
+            "metrics": corrected,
+        },
+    }
+
+
+def _fit_posthoc_drift_model(sample_rows: list[dict], sign_mode: str = "auto") -> dict:
+    rows = [
+        row
+        for row in sample_rows
+        if row is not None
+        and not row["is_closure_measurement"]
+        and row["host_time_ns"] is not None
+    ]
+    if len(rows) < 2:
+        return {
+            "sign": -1.0 if sign_mode == "inverted" else 1.0,
+            "slope_deg_per_s": 0.0,
+            "intercept_deg": 0.0,
+            "fit_samples": len(rows),
+            "fit_duration_s": 0.0,
+            "t0_ns": rows[0]["host_time_ns"] if rows else 0.0,
+        }
+    if sign_mode not in {"auto", "normal", "inverted"}:
+        raise ValueError("sign_mode must be auto, normal or inverted")
+    if sign_mode == "normal":
+        sign = 1.0
+    elif sign_mode == "inverted":
+        sign = -1.0
+    else:
+        normal = _stats_for_signed_rows(rows, sign=1.0)
+        inverted = _stats_for_signed_rows(rows, sign=-1.0)
+        sign = -1.0 if inverted["mae_deg"] < normal["mae_deg"] else 1.0
+
+    t0_ns = rows[0]["host_time_ns"]
+    t_s = np.array([(row["host_time_ns"] - t0_ns) / 1_000_000_000.0 for row in rows], dtype=float)
+    errors = np.array(
+        [
+            circular_difference_deg(
+                normalize_yaw_360_deg(sign * row["calibrated_yaw_deg"]),
+                row["reference_angle_normalized_deg"],
+            )
+            for row in rows
+        ],
+        dtype=float,
+    )
+    errors_unwrapped = _unwrap_degrees(errors)
+    slope, intercept = np.polyfit(t_s, errors_unwrapped, 1)
+    return {
+        "sign": sign,
+        "slope_deg_per_s": float(slope),
+        "intercept_deg": float(intercept),
+        "fit_samples": len(rows),
+        "fit_duration_s": float(t_s[-1] - t_s[0]),
+        "t0_ns": t0_ns,
+    }
+
+
+def _stats_for_signed_rows(sample_rows: list[dict], *, sign: float) -> dict:
+    rows = [row for row in sample_rows if row is not None and not row["is_closure_measurement"]]
+    if not rows:
+        return _empty_stats()
+    measured = np.array([normalize_yaw_360_deg(sign * row["calibrated_yaw_deg"]) for row in rows], dtype=float)
+    reference = np.array([row["reference_angle_normalized_deg"] for row in rows], dtype=float)
+    stats = angular_error_stats(reference, measured)
+    return _stats_dict(stats, len(rows))
+
+
+def _stats_for_drift_corrected_rows(sample_rows: list[dict], model: dict) -> dict:
+    rows = [
+        row
+        for row in sample_rows
+        if row is not None
+        and not row["is_closure_measurement"]
+        and row["host_time_ns"] is not None
+    ]
+    if not rows:
+        return _empty_stats()
+    measured = np.array(
+        [
+            _drift_corrected_yaw_360(row, model)
+            for row in rows
+        ],
+        dtype=float,
+    )
+    reference = np.array([row["reference_angle_normalized_deg"] for row in rows], dtype=float)
+    stats = angular_error_stats(reference, measured)
+    return _stats_dict(stats, len(rows))
+
+
+def _corrected_fields_for_sample(sample: dict, model: dict) -> dict[str, float]:
+    signed = normalize_yaw_360_deg(model["sign"] * sample["calibrated_yaw_deg"])
+    drift_model = _drift_model_for_sample(sample, model)
+    corrected = normalize_yaw_360_deg(signed - drift_model)
+    reference = sample["reference_angle_normalized_deg"]
+    return {
+        "yaw_sign_corrected_deg": signed,
+        "drift_model_deg": drift_model,
+        "yaw_drift_corrected_deg": corrected,
+        "error_raw_deg": float(circular_difference_deg(sample["measured_yaw_360_deg"], reference)),
+        "error_sign_corrected_deg": float(circular_difference_deg(signed, reference)),
+        "error_drift_corrected_deg": float(circular_difference_deg(corrected, reference)),
+    }
+
+
+def _drift_corrected_yaw_360(sample: dict, model: dict) -> float:
+    signed = normalize_yaw_360_deg(model["sign"] * sample["calibrated_yaw_deg"])
+    return normalize_yaw_360_deg(signed - _drift_model_for_sample(sample, model))
+
+
+def _drift_model_for_sample(sample: dict, model: dict) -> float:
+    t_s = (sample["host_time_ns"] - model["t0_ns"]) / 1_000_000_000.0
+    return model["slope_deg_per_s"] * t_s + model["intercept_deg"]
+
+
+def _unwrap_degrees(values: np.ndarray) -> np.ndarray:
+    return np.rad2deg(np.unwrap(np.deg2rad(values)))
+
+
+def _stats_dict(stats, samples: int) -> dict:
+    return {
+        "mae_deg": stats.mae_deg,
+        "rmse_deg": stats.rmse_deg,
+        "bias_deg": stats.bias_deg,
+        "max_abs_error_deg": stats.max_abs_error_deg,
+        "samples": samples,
+    }
+
+
+def _empty_stats() -> dict:
+    return {
+        "mae_deg": None,
+        "rmse_deg": None,
+        "bias_deg": None,
+        "max_abs_error_deg": None,
+        "samples": 0,
     }
 
 
