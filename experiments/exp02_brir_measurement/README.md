@@ -19,14 +19,27 @@ Nominal routing:
 |---|---|---|
 | Scarlett input 1 | Earthworks L | captured on every sweep |
 | Scarlett input 2 | Earthworks R | captured on every sweep |
-| Scarlett input 5 | electrical reference | loopback from output 3 |
+| Scarlett stream input 3 | electrical reference | loopback from output 3 |
 | Scarlett output 1 | Neumann A | active only for speaker A trials |
 | Scarlett output 2 | Neumann B | active only for speaker B trials |
 | Scarlett output 3 | reference copy | exact copy of the active speaker drive |
 
 Only one Neumann is active during a sweep. The inactive speaker channel and
 unused output 4 must be digital zero. The reference cable must be a line-level
-loop from output 3 to input 5; phantom power must not reach this connection.
+loop from output 3 to the configured reference input stream channel; phantom
+power must not reach this connection.
+
+On the observed Windows machine, PortAudio exposed the Scarlett as two
+separate WDM-KS devices:
+
+- input device: `Analogue 1 + 2 (wc4800_8214)`;
+- output device: `Speakers (wr4800_8214)`;
+- host API: `Windows WDM-KS`;
+- opened stream: 4 inputs and 4 outputs at 48 kHz.
+
+This is valid. The app opens one full-duplex stream with
+`device=(input_device_index, output_device_index)` and
+`channels=(4, 4)`. It does not open two independent streams.
 
 The platform is measured at physical angles:
 
@@ -162,13 +175,19 @@ The old `brir-process` command still works for a minimal config containing
 `recorded_wav`, `reference_wav` and `output_ir_wav`. It is not the official
 native acquisition pipeline for the campaign.
 
+See also:
+
+- `docs/HOW_TO_RUN_EXPERIMENT_02_PTBR.md`;
+- `docs/EXPERIMENT_02_TROUBLESHOOTING_PTBR.md`;
+- `docs/EXPERIMENT_02_QUICK_CHECKLIST_PTBR.md`.
+
 Install acquisition dependencies on the Windows acquisition machine:
 
 ```bash
 python -m pip install -e ".[acquisition,ble,metrics,dev]"
 ```
 
-List PortAudio/ASIO devices:
+List PortAudio devices and candidate input/output pairs:
 
 ```bash
 python -m tiresias_benchmark exp02-audio-list-devices
@@ -235,13 +254,13 @@ qc.json
    outputs and direct monitoring is disabled.
 2. Connect Earthworks L/R to inputs 1/2 and enable phantom power only for those
    microphone inputs.
-3. Connect Scarlett output 3 to input 5 as the electrical reference.
+3. Connect Scarlett output 3 to the configured reference input channel.
 4. Start with monitor levels attenuated and run channel probes before any loud
    sweep.
 5. Confirm that a probe on output 1 reaches Neumann A and not Neumann B.
 6. Confirm that a probe on output 2 reaches Neumann B and not Neumann A.
-7. Confirm that output 3 is captured on input 5 with high correlation and no
-   clipping.
+7. Confirm that output 3 is captured on the configured reference input with
+   high correlation and no clipping.
 8. Record room noise and a low-level pilot at 0 deg.
 9. Inspect raw peaks, reference SNR, IR shape, L/R polarity and BLE coverage.
 10. Only then run the 148 official trials.
@@ -275,9 +294,8 @@ reference for deconvolution.
 
 These must be verified on the Windows acquisition machine:
 
-- ASIO device name and channel ordering returned by `sounddevice`;
-- whether sparse ASIO channel selection works or whether the stream must open
-  six input channels and four output channels;
+- WDM-KS or ASIO device names and channel ordering returned by `sounddevice`;
+- whether the stream channel indices match the physical Scarlett routing;
 - Focusrite Control routing and absence of direct-monitor leakage;
 - safe output level for the Neumanns and safe input level for the reference;
 - Earthworks L/R physical symmetry and serial-number mapping;

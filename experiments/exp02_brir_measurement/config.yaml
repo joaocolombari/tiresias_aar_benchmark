@@ -107,12 +107,15 @@ microphones:
 
 audio_device:
   interface: "Focusrite Scarlett 18i8"
-  preferred_host_api: ASIO
-  device_name_contains: Scarlett
+  preferred_host_api: "Windows WDM-KS"
+  input_device_name_contains: "Analogue 1 + 2"
+  output_device_name_contains: "Speakers"
+  input_device_index_override: null
+  output_device_index_override: null
   sample_rate_hz: 48000
   block_size_frames: 512
   dtype: float32
-  open_input_channel_count: 6
+  open_input_channel_count: 4
   open_output_channel_count: 4
   exclusive_required: true
   input_channels:
@@ -124,21 +127,13 @@ audio_device:
       physical_number: 2
       array_index: 1
       logical_role: mic_r
-    - physical_name: "Scarlett input 3 - unused"
+    - physical_name: "Scarlett stream input 3 - electrical reference"
       physical_number: 3
       array_index: 2
-      logical_role: null
+      logical_role: reference_input
     - physical_name: "Scarlett input 4 - unused"
       physical_number: 4
       array_index: 3
-      logical_role: null
-    - physical_name: "Scarlett input 5 - electrical reference"
-      physical_number: 5
-      array_index: 4
-      logical_role: reference_input
-    - physical_name: "Scarlett input 6 - unused"
-      physical_number: 6
-      array_index: 5
       logical_role: null
   output_channels:
     - physical_name: "Scarlett output 1 - Neumann A"
@@ -160,7 +155,7 @@ audio_device:
   channel_selection:
     mic_left_index: 0
     mic_right_index: 1
-    reference_input_index: 4
+    reference_input_index: 2
     speaker_A_output_index: 0
     speaker_B_output_index: 1
     reference_output_index: 2

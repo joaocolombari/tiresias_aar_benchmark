@@ -17,14 +17,39 @@ from tiresias_benchmark.acoustics.sweep import exponential_sine_sweep, sweep_wit
 
 
 @dataclass(frozen=True)
-class AudioSelection:
+class AudioDevicePair:
     input_device_index: int
-    output_device_index: int
     input_device_name: str
+    output_device_index: int
     output_device_name: str
+    host_api_index: int
     host_api_name: str
-    input_channel_count: int
-    output_channel_count: int
+    max_input_channels: int
+    max_output_channels: int
+    requested_input_channels: int
+    requested_output_channels: int
+
+
+@dataclass(frozen=True)
+class CandidatePair:
+    input_device_index: int | None
+    input_device_name: str | None
+    output_device_index: int | None
+    output_device_name: str | None
+    host_api_index: int | None
+    host_api_name: str | None
+    max_input_channels: int
+    max_output_channels: int
+    requested_input_channels: int
+    requested_output_channels: int
+    supports_requested_settings: bool
+    rejection_reason: str | None
+
+
+class AudioPreflightError(RuntimeError):
+    def __init__(self, message: str, report: dict[str, Any]):
+        super().__init__(message)
+        self.report = report
 
 
 @dataclass(frozen=True)
@@ -40,10 +65,11 @@ class TrialAudioResult:
         return {key: str(value) for key, value in asdict(self).items()}
 
 
-def list_audio_devices() -> dict[str, Any]:
+def list_audio_devices(config: dict | None = None) -> dict[str, Any]:
     sd = _require_sounddevice()
     hostapis = sd.query_hostapis()
     devices = sd.query_devices()
+    config_for_pairs = config or _default_audio_listing_config()
     return {
         "hostapis": [
             {
@@ -63,34 +89,62 @@ def list_audio_devices() -> dict[str, Any]:
                 "max_input_channels": device["max_input_channels"],
                 "max_output_channels": device["max_output_channels"],
                 "default_samplerate": device["default_samplerate"],
+                "direction": _device_direction(device),
             }
             for index, device in enumerate(devices)
+        ],
+        "candidate_pairs": [
+            asdict(candidate)
+            for candidate in find_audio_device_pairs(config_for_pairs, hostapis, devices)
         ],
     }
 
 
 def preflight_audio(config: dict, duration_s: float = 0.25, open_stream: bool = True) -> dict:
     sd = _require_sounddevice()
-    selection = select_audio_device(config)
+    selection = select_audio_device_pair(config)
     audio = config["audio_device"]
     sample_rate = int(audio["sample_rate_hz"])
     block_size = int(audio["block_size_frames"])
     dtype = str(audio.get("dtype", "float32"))
+    report: dict[str, Any] = {
+        "selection": asdict(selection),
+        "sample_rate_hz": sample_rate,
+        "block_size_frames": block_size,
+        "dtype": dtype,
+        "input_latency": None,
+        "output_latency": None,
+        "check_input_settings": {"passed": False, "exception": None},
+        "check_output_settings": {"passed": False, "exception": None},
+        "full_duplex_open": {"passed": False, "attempted": open_stream, "exception": None},
+    }
 
-    sd.check_input_settings(
-        device=selection.input_device_index,
-        channels=selection.input_channel_count,
-        samplerate=sample_rate,
-        dtype=dtype,
-    )
-    sd.check_output_settings(
-        device=selection.output_device_index,
-        channels=selection.output_channel_count,
-        samplerate=sample_rate,
-        dtype=dtype,
-    )
+    try:
+        sd.check_input_settings(
+            device=selection.input_device_index,
+            channels=selection.requested_input_channels,
+            samplerate=sample_rate,
+            dtype=dtype,
+        )
+        report["check_input_settings"]["passed"] = True
+    except Exception as exc:
+        report["check_input_settings"]["exception"] = repr(exc)
+        report["passed"] = False
+        raise AudioPreflightError(f"unsupported input settings: {exc}", report) from exc
 
-    opened_stream = False
+    try:
+        sd.check_output_settings(
+            device=selection.output_device_index,
+            channels=selection.requested_output_channels,
+            samplerate=sample_rate,
+            dtype=dtype,
+        )
+        report["check_output_settings"]["passed"] = True
+    except Exception as exc:
+        report["check_output_settings"]["exception"] = repr(exc)
+        report["passed"] = False
+        raise AudioPreflightError(f"unsupported output settings: {exc}", report) from exc
+
     if open_stream:
         frames_seen = 0
 
@@ -101,65 +155,262 @@ def preflight_audio(config: dict, duration_s: float = 0.25, open_stream: bool = 
             if frames_seen >= int(round(duration_s * sample_rate)):
                 raise sd.CallbackStop()
 
-        with sd.Stream(
-            device=(selection.input_device_index, selection.output_device_index),
-            samplerate=sample_rate,
-            blocksize=block_size,
-            dtype=dtype,
-            channels=(selection.input_channel_count, selection.output_channel_count),
-            callback=callback,
-        ):
-            sd.sleep(int((duration_s + 0.5) * 1000))
-        opened_stream = True
+        try:
+            with sd.Stream(
+                device=(selection.input_device_index, selection.output_device_index),
+                samplerate=sample_rate,
+                blocksize=block_size,
+                dtype=dtype,
+                channels=(selection.requested_input_channels, selection.requested_output_channels),
+                callback=callback,
+            ) as stream:
+                report["input_latency"] = getattr(stream, "latency", (None, None))[0]
+                report["output_latency"] = getattr(stream, "latency", (None, None))[1]
+                sd.sleep(int((duration_s + 0.5) * 1000))
+            report["full_duplex_open"]["passed"] = True
+        except Exception as exc:
+            report["full_duplex_open"]["exception"] = repr(exc)
+            report["passed"] = False
+            raise AudioPreflightError(f"full-duplex pair open failed: {exc}", report) from exc
 
-    return {
-        "selection": asdict(selection),
-        "sample_rate_hz": sample_rate,
-        "block_size_frames": block_size,
-        "dtype": dtype,
-        "opened_zero_output_stream": opened_stream,
-    }
+    report["passed"] = bool(
+        report["check_input_settings"]["passed"]
+        and report["check_output_settings"]["passed"]
+        and open_stream
+        and report["full_duplex_open"]["passed"]
+    )
+    return report
 
 
-def select_audio_device(config: dict) -> AudioSelection:
+def select_audio_device_pair(config: dict) -> AudioDevicePair:
     sd = _require_sounddevice()
+    return select_audio_device_pair_from_query(
+        config,
+        hostapis=sd.query_hostapis(),
+        devices=sd.query_devices(),
+    )
+
+
+def select_audio_device_pair_from_query(
+    config: dict,
+    hostapis: list[dict],
+    devices: list[dict],
+) -> AudioDevicePair:
+    audio = config["audio_device"]
+    input_override = audio.get("input_device_index_override")
+    output_override = audio.get("output_device_index_override")
+    if input_override is not None or output_override is not None:
+        if input_override is None or output_override is None:
+            raise RuntimeError(
+                "input_device_index_override and output_device_index_override "
+                "must be provided together"
+            )
+        return _pair_from_indices(config, hostapis, devices, int(input_override), int(output_override))
+
+    candidates = find_audio_device_pairs(config, hostapis, devices)
+    accepted = [candidate for candidate in candidates if candidate.supports_requested_settings]
+    if not accepted:
+        reasons = sorted({candidate.rejection_reason for candidate in candidates if candidate.rejection_reason})
+        raise RuntimeError("No audio device pair matches Experiment 2 config: " + "; ".join(reasons))
+    selected = accepted[0]
+    return AudioDevicePair(
+        input_device_index=int(selected.input_device_index),
+        input_device_name=str(selected.input_device_name),
+        output_device_index=int(selected.output_device_index),
+        output_device_name=str(selected.output_device_name),
+        host_api_index=int(selected.host_api_index),
+        host_api_name=str(selected.host_api_name),
+        max_input_channels=selected.max_input_channels,
+        max_output_channels=selected.max_output_channels,
+        requested_input_channels=selected.requested_input_channels,
+        requested_output_channels=selected.requested_output_channels,
+    )
+
+
+def find_audio_device_pairs(
+    config: dict,
+    hostapis: list[dict],
+    devices: list[dict],
+) -> list[CandidatePair]:
     audio = config["audio_device"]
     preferred_api = str(audio.get("preferred_host_api", "")).lower()
-    name_contains = str(audio.get("device_name_contains", "")).lower()
+    input_name = str(
+        audio.get("input_device_name_contains", audio.get("device_name_contains", ""))
+    ).lower()
+    output_name = str(
+        audio.get("output_device_name_contains", audio.get("device_name_contains", ""))
+    ).lower()
     required_inputs = int(audio.get("open_input_channel_count", 0))
     required_outputs = int(audio.get("open_output_channel_count", 0))
 
-    hostapis = sd.query_hostapis()
-    devices = sd.query_devices()
-    candidates: list[tuple[int, dict]] = []
+    input_candidates: list[tuple[int, dict]] = []
+    output_candidates: list[tuple[int, dict]] = []
+    pairs: list[CandidatePair] = []
+
     for index, device in enumerate(devices):
         api_name = str(hostapis[int(device["hostapi"])]["name"])
         if preferred_api and preferred_api not in api_name.lower():
             continue
-        if name_contains and name_contains not in str(device["name"]).lower():
-            continue
-        if int(device["max_input_channels"]) < required_inputs:
-            continue
-        if int(device["max_output_channels"]) < required_outputs:
-            continue
-        candidates.append((index, device))
+        device_name = str(device["name"]).lower()
+        if input_name and input_name in device_name:
+            if int(device["max_input_channels"]) > 0:
+                input_candidates.append((index, device))
+            else:
+                pairs.append(
+                    _rejected_candidate(
+                        config,
+                        hostapis,
+                        input_index=index,
+                        input_device=device,
+                        reason="insufficient input channels",
+                    )
+                )
+        if output_name and output_name in device_name:
+            if int(device["max_output_channels"]) > 0:
+                output_candidates.append((index, device))
+            else:
+                pairs.append(
+                    _rejected_candidate(
+                        config,
+                        hostapis,
+                        output_index=index,
+                        output_device=device,
+                        reason="insufficient output channels",
+                    )
+                )
 
-    if not candidates:
-        raise RuntimeError(
-            "No full-duplex audio device matches the Experiment 2 config. "
-            "Check preferred_host_api, device_name_contains and channel counts."
-        )
+    if not input_candidates:
+        pairs.append(_rejected_candidate(config, hostapis, reason="input device not found"))
+    if not output_candidates:
+        pairs.append(_rejected_candidate(config, hostapis, reason="output device not found"))
 
-    index, device = candidates[0]
-    host_api_name = str(hostapis[int(device["hostapi"])]["name"])
-    return AudioSelection(
-        input_device_index=index,
-        output_device_index=index,
-        input_device_name=str(device["name"]),
-        output_device_name=str(device["name"]),
-        host_api_name=host_api_name,
-        input_channel_count=required_inputs,
-        output_channel_count=required_outputs,
+    for input_index, input_device in input_candidates:
+        for output_index, output_device in output_candidates:
+            pairs.append(
+                _candidate_pair(
+                    config,
+                    hostapis,
+                    input_index,
+                    input_device,
+                    output_index,
+                    output_device,
+                )
+            )
+    return sorted(
+        pairs,
+        key=lambda pair: (
+            pair.rejection_reason is not None,
+            pair.host_api_name or "",
+            pair.input_device_name or "",
+            pair.output_device_name or "",
+        ),
+    )
+
+
+def _candidate_pair(
+    config: dict,
+    hostapis: list[dict],
+    input_index: int,
+    input_device: dict,
+    output_index: int,
+    output_device: dict,
+) -> CandidatePair:
+    audio = config["audio_device"]
+    required_inputs = int(audio.get("open_input_channel_count", 0))
+    required_outputs = int(audio.get("open_output_channel_count", 0))
+    input_hostapi = int(input_device["hostapi"])
+    output_hostapi = int(output_device["hostapi"])
+    max_inputs = int(input_device["max_input_channels"])
+    max_outputs = int(output_device["max_output_channels"])
+    rejection_reason = None
+    if input_hostapi != output_hostapi:
+        rejection_reason = "host API mismatch"
+    elif max_inputs < required_inputs:
+        rejection_reason = "insufficient input channels"
+    elif max_outputs < required_outputs:
+        rejection_reason = "insufficient output channels"
+    return CandidatePair(
+        input_device_index=input_index,
+        input_device_name=str(input_device["name"]),
+        output_device_index=output_index,
+        output_device_name=str(output_device["name"]),
+        host_api_index=input_hostapi if input_hostapi == output_hostapi else None,
+        host_api_name=str(hostapis[input_hostapi]["name"]) if input_hostapi == output_hostapi else None,
+        max_input_channels=max_inputs,
+        max_output_channels=max_outputs,
+        requested_input_channels=required_inputs,
+        requested_output_channels=required_outputs,
+        supports_requested_settings=rejection_reason is None,
+        rejection_reason=rejection_reason,
+    )
+
+
+def _rejected_candidate(
+    config: dict,
+    hostapis: list[dict],
+    input_index: int | None = None,
+    input_device: dict | None = None,
+    output_index: int | None = None,
+    output_device: dict | None = None,
+    reason: str = "device not found",
+) -> CandidatePair:
+    audio = config["audio_device"]
+    input_hostapi = int(input_device["hostapi"]) if input_device else None
+    output_hostapi = int(output_device["hostapi"]) if output_device else None
+    if input_hostapi is not None and output_hostapi is not None and input_hostapi == output_hostapi:
+        host_api_index = input_hostapi
+    elif input_hostapi is not None:
+        host_api_index = input_hostapi
+    else:
+        host_api_index = output_hostapi
+    return CandidatePair(
+        input_device_index=input_index,
+        input_device_name=str(input_device["name"]) if input_device else None,
+        output_device_index=output_index,
+        output_device_name=str(output_device["name"]) if output_device else None,
+        host_api_index=host_api_index,
+        host_api_name=str(hostapis[host_api_index]["name"]) if host_api_index is not None else None,
+        max_input_channels=int(input_device["max_input_channels"]) if input_device else 0,
+        max_output_channels=int(output_device["max_output_channels"]) if output_device else 0,
+        requested_input_channels=int(audio.get("open_input_channel_count", 0)),
+        requested_output_channels=int(audio.get("open_output_channel_count", 0)),
+        supports_requested_settings=False,
+        rejection_reason=reason,
+    )
+
+
+def _pair_from_indices(
+    config: dict,
+    hostapis: list[dict],
+    devices: list[dict],
+    input_index: int,
+    output_index: int,
+) -> AudioDevicePair:
+    if input_index < 0 or input_index >= len(devices):
+        raise RuntimeError("input device not found")
+    if output_index < 0 or output_index >= len(devices):
+        raise RuntimeError("output device not found")
+    candidate = _candidate_pair(
+        config,
+        hostapis,
+        input_index,
+        devices[input_index],
+        output_index,
+        devices[output_index],
+    )
+    if candidate.rejection_reason:
+        raise RuntimeError(candidate.rejection_reason)
+    return AudioDevicePair(
+        input_device_index=input_index,
+        input_device_name=str(devices[input_index]["name"]),
+        output_device_index=output_index,
+        output_device_name=str(devices[output_index]["name"]),
+        host_api_index=int(candidate.host_api_index),
+        host_api_name=str(candidate.host_api_name),
+        max_input_channels=candidate.max_input_channels,
+        max_output_channels=candidate.max_output_channels,
+        requested_input_channels=candidate.requested_input_channels,
+        requested_output_channels=candidate.requested_output_channels,
     )
 
 
@@ -286,9 +537,9 @@ def _record_signal(
 
     if simulate:
         _simulate_capture(playback, raw, timeline, sample_rate, block_size, channels)
-        selection: AudioSelection | None = None
+        selection: AudioDevicePair | None = None
     else:
-        selection = select_audio_device(config)
+        selection = select_audio_device_pair(config)
         _capture_full_duplex(
             config=config,
             playback=playback,
@@ -360,7 +611,7 @@ def _capture_full_duplex(
     playback: np.ndarray,
     raw: np.ndarray,
     timeline: dict[str, np.ndarray],
-    selection: AudioSelection,
+    selection: AudioDevicePair,
 ) -> None:
     sd = _require_sounddevice()
     audio = config["audio_device"]
@@ -404,6 +655,8 @@ def _capture_full_duplex(
                 done.set()
                 raise sd.CallbackStop()
         except BaseException as exc:  # pragma: no cover - exercised only by hardware callback
+            if isinstance(exc, sd.CallbackStop):
+                raise
             error.append(exc)
             done.set()
             raise
@@ -413,7 +666,7 @@ def _capture_full_duplex(
         samplerate=sample_rate,
         blocksize=block_size,
         dtype=dtype,
-        channels=(selection.input_channel_count, selection.output_channel_count),
+        channels=(selection.requested_input_channels, selection.requested_output_channels),
         callback=callback,
     ):
         timeout_s = len(playback) / sample_rate + 5.0
@@ -553,7 +806,7 @@ def _metadata(
     block_size: int,
     playback: np.ndarray,
     raw: np.ndarray,
-    selection: AudioSelection | None,
+    selection: AudioDevicePair | None,
     simulate: bool,
     files: dict[str, Path],
 ) -> dict:
@@ -705,6 +958,30 @@ def _require_sounddevice():
             "Install with: python -m pip install -e '.[acquisition]'"
         ) from exc
     return sd
+
+
+def _device_direction(device: dict) -> str:
+    has_input = int(device["max_input_channels"]) > 0
+    has_output = int(device["max_output_channels"]) > 0
+    if has_input and has_output:
+        return "full-duplex"
+    if has_input:
+        return "input-only"
+    if has_output:
+        return "output-only"
+    return "no-audio"
+
+
+def _default_audio_listing_config() -> dict:
+    return {
+        "audio_device": {
+            "preferred_host_api": "Windows WDM-KS",
+            "input_device_name_contains": "Analogue 1 + 2",
+            "output_device_name_contains": "Speakers",
+            "open_input_channel_count": 4,
+            "open_output_channel_count": 4,
+        }
+    }
 
 
 def _callback_status_flags(status: object) -> int:

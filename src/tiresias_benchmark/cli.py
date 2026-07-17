@@ -270,10 +270,11 @@ def cmd_figures_generate(args: argparse.Namespace) -> None:
     print(json.dumps({key: str(value) for key, value in outputs.__dict__.items()}, indent=2))
 
 
-def cmd_exp02_audio_list_devices(args: argparse.Namespace) -> None:  # noqa: ARG001
+def cmd_exp02_audio_list_devices(args: argparse.Namespace) -> None:
     audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    config = load_yaml(args.config) if args.config else None
     try:
-        result = audio.list_audio_devices()
+        result = audio.list_audio_devices(config)
     except RuntimeError as exc:
         raise SystemExit(str(exc)) from exc
     print(json.dumps(result, indent=2))
@@ -288,6 +289,9 @@ def cmd_exp02_audio_preflight(args: argparse.Namespace) -> None:
             duration_s=args.duration_s,
             open_stream=not args.no_open_stream,
         )
+    except getattr(audio, "AudioPreflightError") as exc:
+        _write_optional_json(args.output, exc.report)
+        raise SystemExit(str(exc)) from exc
     except (RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
     _write_optional_json(args.output, result)
@@ -411,6 +415,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_figures_generate)
 
     p = sub.add_parser("exp02-audio-list-devices")
+    p.add_argument("--config", default="experiments/exp02_brir_measurement/config.yaml")
     p.set_defaults(func=cmd_exp02_audio_list_devices)
 
     p = sub.add_parser("exp02-audio-preflight")

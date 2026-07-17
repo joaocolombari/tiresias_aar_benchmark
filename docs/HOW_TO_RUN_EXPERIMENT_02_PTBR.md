@@ -51,16 +51,16 @@ Roteamento nominal:
 |---|---|
 | input 1 | Earthworks L |
 | input 2 | Earthworks R |
-| input 5 | referência elétrica |
+| stream input 3 | referência elétrica |
 | output 1 | Neumann A |
 | output 2 | Neumann B |
-| output 3 | cópia elétrica do sweep para input 5 |
+| output 3 | cópia elétrica do sweep para o canal de referência |
 
 Regras importantes:
 
 - apenas um Neumann toca por sweep;
 - output 3 deve copiar exatamente o sinal enviado ao Neumann ativo;
-- output 3 deve entrar em input 5 por linha, sem phantom power;
+- output 3 deve entrar no canal de referência configurado, sem phantom power;
 - phantom power deve ficar ligado somente nos inputs dos Earthworks;
 - direct monitoring e mixes internos da Scarlett devem ficar desligados;
 - os ganhos dos dois Earthworks devem permanecer fixos durante toda a campanha;
@@ -126,7 +126,7 @@ operador ou ordem fixa de alto-falantes.
 
 Não pule a posição 360. Ela é a closure measurement do experimento acústico.
 
-## 7. Testes de Scarlett/ASIO
+## 7. Testes de Scarlett/PortAudio
 
 Liste os dispositivos:
 
@@ -134,7 +134,21 @@ Liste os dispositivos:
 python -m tiresias_benchmark exp02-audio-list-devices
 ```
 
-Confirme se aparece uma API ASIO e um dispositivo contendo `Scarlett`.
+Na máquina Windows observada, a Scarlett apareceu como dois dispositivos
+WDM-KS separados:
+
+```text
+input:  Analogue 1 + 2 (wc4800_8214)
+output: Speakers (wr4800_8214)
+API:    Windows WDM-KS
+```
+
+Isso é esperado. A aplicação deve selecionar um par input/output e abrir uma
+única stream full-duplex:
+
+```python
+sounddevice.Stream(device=(input_device, output_device), channels=(4, 4))
+```
 
 Rode o preflight full-duplex com saída digital zero:
 
@@ -148,7 +162,8 @@ Se o driver não aceitar os canais configurados, ajuste no YAML:
 
 ```text
 audio_device.preferred_host_api
-audio_device.device_name_contains
+audio_device.input_device_name_contains
+audio_device.output_device_name_contains
 audio_device.open_input_channel_count
 audio_device.open_output_channel_count
 audio_device.channel_selection
@@ -301,14 +316,14 @@ congelada antes da campanha oficial.
 
 Ainda precisam ser verificados na máquina Windows:
 
-- nome exato da Scarlett no ASIO;
+- nomes exatos dos dispositivos PortAudio/WDM-KS ou ASIO;
 - ordem real dos canais retornada pelo driver;
-- suporte ou não a seleção esparsa de canais;
+- correspondência entre os quatro canais abertos e a fiação física da Scarlett;
 - nível seguro dos Neumanns;
 - ganho adequado do loopback elétrico;
 - ruído de fundo da sala;
 - cauda de reverberação necessária para o pós-silêncio;
-- estabilidade BLE enquanto o stream ASIO está aberto.
+- estabilidade BLE enquanto o stream de áudio está aberto.
 
 Uma foto da montagem só é necessária se houver dúvida sobre simetria dos
 Earthworks, definição de 0 graus ou qual Neumann deve ser A/B.

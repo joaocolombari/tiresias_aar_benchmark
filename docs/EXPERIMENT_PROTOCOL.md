@@ -78,8 +78,13 @@ To reduce order bias, odd angle indices invert speaker order:
 
 The complete plan contains 37 angle blocks, 148 sweeps and 296 expected impulse
 responses. Each sweep activates one speaker only. Scarlett output 3 carries an
-exact copy of the active speaker drive and returns to Scarlett input 5 as the
-electrical reference.
+exact copy of the active speaker drive and returns to the configured reference
+input stream channel as the electrical reference.
+
+On Windows, PortAudio may expose the same Scarlett interface as one input-only
+device and one output-only device under `Windows WDM-KS`. This is acceptable as
+long as the application opens one stream with
+`device=(input_device_index, output_device_index)` and `channels=(4, 4)`.
 
 Raw acquisition must preserve:
 

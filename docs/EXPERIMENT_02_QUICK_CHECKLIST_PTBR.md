@@ -4,14 +4,14 @@
 
 - [ ] Earthworks L no input 1.
 - [ ] Earthworks R no input 2.
-- [ ] Scarlett output 3 ligado ao input 5 por linha.
+- [ ] Scarlett output 3 ligado ao canal de referência configurado.
 - [ ] Phantom power ligado somente nos inputs dos Earthworks.
 - [ ] Direct monitoring desligado.
 - [ ] Neumann A no output 1.
 - [ ] Neumann B no output 2.
 - [ ] Output 4 sem uso.
 - [ ] Ganhos dos Earthworks anotados e travados.
-- [ ] Ganho do input 5 anotado e sem clipping.
+- [ ] Ganho do canal de referência anotado e sem clipping.
 - [ ] 0 graus fisico fotografado.
 - [ ] 360 graus conferido como fechamento visual de 0 graus.
 
@@ -37,7 +37,7 @@ Confirmar no resultado:
 
 - [ ] Sweep baixo em Neumann A.
 - [ ] Sweep baixo em Neumann B.
-- [ ] Referencia eletrica aparece no input 5.
+- [ ] Referencia eletrica aparece no canal de referência configurado.
 - [ ] Earthworks L/R capturam ambos os speakers.
 - [ ] Speaker inativo permanece silencioso.
 - [ ] Nenhum canal clipa.
