@@ -345,7 +345,9 @@ def find_audio_device_pairs(
         if preferred_api and preferred_api not in api_name.lower():
             continue
         device_name = str(device["name"]).lower()
-        if input_name and input_name in device_name:
+        input_name_matches = not input_name or input_name in device_name
+        output_name_matches = not output_name or output_name in device_name
+        if input_name_matches:
             if int(device["max_input_channels"]) > 0:
                 input_candidates.append((index, device))
             else:
@@ -358,7 +360,7 @@ def find_audio_device_pairs(
                         reason="insufficient input channels",
                     )
                 )
-        if output_name and output_name in device_name:
+        if output_name_matches:
             if int(device["max_output_channels"]) > 0:
                 output_candidates.append((index, device))
             else:

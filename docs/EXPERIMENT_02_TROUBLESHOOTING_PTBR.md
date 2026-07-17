@@ -101,6 +101,29 @@ recusou aquele formato. O probe testa `float32`, `int32` e `int16`, selecionando
 o primeiro formato que passa em `check_input_settings`, `check_output_settings`
 e abertura full-duplex.
 
+Se nenhum formato passar no WDM-KS, teste o ASIO:
+
+```bash
+python -m tiresias_benchmark exp02-audio-list-devices \
+  --config experiments/exp02_brir_measurement/config.asio.yaml
+
+python -m tiresias_benchmark exp02-audio-format-probe \
+  --config experiments/exp02_brir_measurement/config.asio.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_format_probe_asio.json
+
+python -m tiresias_benchmark exp02-audio-preflight \
+  --config experiments/exp02_brir_measurement/config.asio.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_preflight_asio.json
+```
+
+Se o driver ASIO não contiver `Focusrite` no nome listado pelo PortAudio,
+edite temporariamente o `config.asio.yaml` para:
+
+```yaml
+input_device_name_contains: ""
+output_device_name_contains: ""
+```
+
 Rode:
 
 ```bash

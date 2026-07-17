@@ -180,6 +180,42 @@ python -m tiresias_benchmark exp02-audio-preflight \
   --output experiments/exp02_brir_measurement/metrics/audio_preflight.json
 ```
 
+### Tentativa via ASIO
+
+Se o WDM-KS não aceitar nenhum formato de stream, teste o config ASIO separado:
+
+```bash
+python -m tiresias_benchmark exp02-audio-list-devices \
+  --config experiments/exp02_brir_measurement/config.asio.yaml
+```
+
+Depois:
+
+```bash
+python -m tiresias_benchmark exp02-audio-format-probe \
+  --config experiments/exp02_brir_measurement/config.asio.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_format_probe_asio.json
+```
+
+E:
+
+```bash
+python -m tiresias_benchmark exp02-audio-preflight \
+  --config experiments/exp02_brir_measurement/config.asio.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_preflight_asio.json
+```
+
+O `config.asio.yaml` procura dispositivos ASIO contendo `Focusrite` no nome.
+Se o PortAudio listar o driver ASIO com outro nome, altere:
+
+```yaml
+input_device_name_contains: ""
+output_device_name_contains: ""
+```
+
+Isso seleciona deterministicamente o primeiro par com canais suficientes dentro
+da host API `ASIO`.
+
 Se o driver não aceitar os canais configurados, ajuste no YAML:
 
 ```text

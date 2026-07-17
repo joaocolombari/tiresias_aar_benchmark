@@ -174,6 +174,28 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertEqual(pair.input_device_index, 0)
         self.assertEqual(pair.output_device_index, 0)
 
+    def test_asio_can_select_by_host_api_when_name_filters_are_blank(self):
+        config = load_yaml(CONFIG_PATH)
+        config["audio_device"]["preferred_host_api"] = "ASIO"
+        config["audio_device"]["input_device_name_contains"] = ""
+        config["audio_device"]["output_device_name_contains"] = ""
+        hostapis = [{"name": "ASIO", "default_input_device": 0, "default_output_device": 0}]
+        devices = [
+            {
+                "name": "Focusrite USB Audio",
+                "hostapi": 0,
+                "max_input_channels": 8,
+                "max_output_channels": 8,
+                "default_samplerate": 48000.0,
+            }
+        ]
+
+        pair = audio.select_audio_device_pair_from_query(config, hostapis, devices)
+
+        self.assertEqual(pair.input_device_index, 0)
+        self.assertEqual(pair.output_device_index, 0)
+        self.assertEqual(pair.host_api_name, "ASIO")
+
     def test_preflight_opens_single_stream_with_device_pair_and_4x4_channels(self):
         config = load_yaml(CONFIG_PATH)
         fake = FakeSoundDevice(*wdm_ks_devices())

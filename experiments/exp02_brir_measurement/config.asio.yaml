@@ -1,0 +1,243 @@
+experiment_id: exp02_brir_measurement
+schema_version: 1
+
+purpose:
+  description: "Native binaural room impulse response measurement for the Tiresias mannequin rig."
+  rew_used: false
+  attention_model_note: "The attention model remains monophonic; measured BRIRs are used later for binaural rendering."
+
+geometry:
+  zero_direction_description: "Mannequin facing the acoustic frontal reference"
+  positive_rotation_direction: "clockwise"
+  reference_angle_range_deg: [0, 360]
+  reference_angle_step_deg: 10
+  closure_measurement_deg: 360
+  closure_of_angle_deg: 0
+  speaker_reference:
+    A:
+      azimuth_deg: -45
+      name: "Neumann A"
+    B:
+      azimuth_deg: 45
+      name: "Neumann B"
+
+planning:
+  angles_deg:
+    - 0
+    - 10
+    - 20
+    - 30
+    - 40
+    - 50
+    - 60
+    - 70
+    - 80
+    - 90
+    - 100
+    - 110
+    - 120
+    - 130
+    - 140
+    - 150
+    - 160
+    - 170
+    - 180
+    - 190
+    - 200
+    - 210
+    - 220
+    - 230
+    - 240
+    - 250
+    - 260
+    - 270
+    - 280
+    - 290
+    - 300
+    - 310
+    - 320
+    - 330
+    - 340
+    - 350
+    - 360
+  closure_measurement_deg: 360
+  repetitions_per_speaker: 2
+  expected_trial_count: 148
+  expected_impulse_response_count: 296
+  even_angle_index_order:
+    - speaker: A
+      repetition: 1
+    - speaker: B
+      repetition: 1
+    - speaker: A
+      repetition: 2
+    - speaker: B
+      repetition: 2
+  odd_angle_index_order:
+    - speaker: B
+      repetition: 1
+    - speaker: A
+      repetition: 1
+    - speaker: B
+      repetition: 2
+    - speaker: A
+      repetition: 2
+
+speakers:
+  - speaker_id: A
+    name: "Neumann A"
+    output_role: speaker_a
+    serial_number: null
+  - speaker_id: B
+    name: "Neumann B"
+    output_role: speaker_b
+    serial_number: null
+
+microphones:
+  - microphone_id: L
+    ear: L
+    name: "Earthworks L"
+    input_role: mic_l
+    serial_number: null
+  - microphone_id: R
+    ear: R
+    name: "Earthworks R"
+    input_role: mic_r
+    serial_number: null
+
+audio_device:
+  interface: "Focusrite Scarlett 18i8"
+  preferred_host_api: "ASIO"
+  input_device_name_contains: "Focusrite"
+  output_device_name_contains: "Focusrite"
+  input_device_index_override: null
+  output_device_index_override: null
+  sample_rate_hz: 48000
+  block_size_frames: 512
+  stream_dtype: auto
+  stream_dtype_candidates:
+    - float32
+    - int32
+    - int16
+  storage_dtype: float32
+  open_input_channel_count: 4
+  open_output_channel_count: 4
+  exclusive_required: true
+  input_channels:
+    - physical_name: "Scarlett input 1 - Earthworks L"
+      physical_number: 1
+      array_index: 0
+      logical_role: mic_l
+    - physical_name: "Scarlett input 2 - Earthworks R"
+      physical_number: 2
+      array_index: 1
+      logical_role: mic_r
+    - physical_name: "Scarlett stream input 3 - electrical reference"
+      physical_number: 3
+      array_index: 2
+      logical_role: reference_input
+    - physical_name: "Scarlett input 4 - unused"
+      physical_number: 4
+      array_index: 3
+      logical_role: null
+  output_channels:
+    - physical_name: "Scarlett output 1 - Neumann A"
+      physical_number: 1
+      array_index: 0
+      logical_role: speaker_a
+    - physical_name: "Scarlett output 2 - Neumann B"
+      physical_number: 2
+      array_index: 1
+      logical_role: speaker_b
+    - physical_name: "Scarlett output 3 - electrical reference copy"
+      physical_number: 3
+      array_index: 2
+      logical_role: reference_output
+    - physical_name: "Scarlett output 4 - unused"
+      physical_number: 4
+      array_index: 3
+      logical_role: null
+  channel_selection:
+    mic_left_index: 0
+    mic_right_index: 1
+    reference_input_index: 2
+    speaker_A_output_index: 0
+    speaker_B_output_index: 1
+    reference_output_index: 2
+  probe_signal:
+    frequency_hz: 997.0
+    level_dbfs: -48.0
+    duration_s: 0.25
+    fade_in_s: 0.02
+    fade_out_s: 0.02
+    pre_silence_s: 0.05
+    post_silence_s: 0.10
+
+sweep:
+  type: exponential_sine_sweep
+  sample_rate_hz: 48000
+  sweep_start_hz: 20.0
+  sweep_end_hz: 20000.0
+  sweep_frames: 262144
+  pre_silence_s: 1.0
+  post_silence_s: 2.0
+  fade_in_s: 0.05
+  fade_out_s: 0.05
+  level_dbfs: -20.0
+  dtype: float32
+  preserve_raw_without_normalization: true
+
+ble:
+  enabled: true
+  required_for_trial: false
+  device_name: Tiresias_DK
+  characteristic_uuid: "12345678-1234-5678-1234-56789abcdef1"
+  payload_format: legacy_quaternion_f32_le
+  expected_payload_bytes: 16
+  scan_timeout_s: 5.0
+  connect_timeout_s: 10.0
+  reconnect_attempts: 3
+  reconnect_backoff_s: 1.0
+  simulated_rate_hz: 100.0
+  note: "Current firmware BLE packets do not include sequence numbers or device timestamps."
+
+qc:
+  warning_peak_dbfs: -3.0
+  failure_peak_dbfs: -0.1
+  clipping_threshold_linear: 0.999
+  min_reference_snr_db: 40.0
+  min_ir_snr_db: 30.0
+  max_ble_gap_ms: 100.0
+  min_loopback_correlation: 0.8
+  fail_on_xrun: true
+  min_reference_rms_dbfs: -60.0
+  deconvolution_lambda_fraction: 1.0e-10
+  ir_window_duration_s: 0.5
+  pre_sweep_noise_window_s: 0.5
+  arrival_threshold_db_below_peak: 30.0
+  max_abs_itd_ms: 2.0
+  max_abs_level_difference_db: 20.0
+  min_repeat_temporal_correlation: 0.95
+  max_repeat_spectral_difference_db: 1.5
+  max_repeat_level_difference_db: 1.0
+  max_repeat_arrival_difference_ms: 0.15
+  max_repeat_normalized_rms_error: 0.15
+  max_repeat_itd_difference_ms: 0.10
+
+campaign:
+  stabilization_s: 5.0
+  dry_run_stabilization_s: 0.05
+  minimum_yaw_packets: 100
+  dry_run_minimum_yaw_packets: 3
+  max_yaw_standard_deviation_deg: 0.5
+  max_yaw_angle_error_deg: 2.0
+  stale_lock_timeout_s: 600.0
+  max_operator_retries_per_trial: 3
+
+outputs:
+  sessions_root: experiments/exp02_brir_measurement/raw
+  plan_csv: experiments/exp02_brir_measurement/metrics/exp02_plan.csv
+  processed_root: experiments/exp02_brir_measurement/processed
+  metrics_root: experiments/exp02_brir_measurement/metrics
+  figures_root: experiments/exp02_brir_measurement/figures
+  overwrite_existing: false

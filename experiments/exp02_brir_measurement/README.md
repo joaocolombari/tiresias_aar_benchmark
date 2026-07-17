@@ -212,6 +212,19 @@ python -m tiresias_benchmark exp02-audio-preflight \
   --output experiments/exp02_brir_measurement/metrics/audio_preflight.json
 ```
 
+If the WDM-KS config reports `no supported stream dtype found`, try the ASIO
+config:
+
+```bash
+python -m tiresias_benchmark exp02-audio-format-probe \
+  --config experiments/exp02_brir_measurement/config.asio.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_format_probe_asio.json
+
+python -m tiresias_benchmark exp02-audio-preflight \
+  --config experiments/exp02_brir_measurement/config.asio.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_preflight_asio.json
+```
+
 Run a simulated channel probe without hardware:
 
 ```bash
