@@ -16,6 +16,9 @@ import numpy as np
 from tiresias_benchmark.acoustics.sweep import exponential_sine_sweep, sweep_with_silence
 
 
+DEFAULT_STREAM_DTYPE_CANDIDATES = ["float32", "int32", "int16"]
+
+
 @dataclass(frozen=True)
 class AudioDevicePair:
     input_device_index: int
@@ -106,18 +109,24 @@ def preflight_audio(config: dict, duration_s: float = 0.25, open_stream: bool = 
     audio = config["audio_device"]
     sample_rate = int(audio["sample_rate_hz"])
     block_size = int(audio["block_size_frames"])
-    dtype = str(audio.get("dtype", "float32"))
+    dtype_probe = probe_audio_formats(config, duration_s=duration_s, open_stream=open_stream)
+    dtype = dtype_probe.get("selected_stream_dtype")
     report: dict[str, Any] = {
         "selection": asdict(selection),
         "sample_rate_hz": sample_rate,
         "block_size_frames": block_size,
-        "dtype": dtype,
+        "stream_dtype": dtype,
+        "storage_dtype": _storage_dtype(config),
+        "dtype_probe": dtype_probe,
         "input_latency": None,
         "output_latency": None,
         "check_input_settings": {"passed": False, "exception": None},
         "check_output_settings": {"passed": False, "exception": None},
         "full_duplex_open": {"passed": False, "attempted": open_stream, "exception": None},
     }
+    if not dtype:
+        report["passed"] = False
+        raise AudioPreflightError("no supported stream dtype found", report)
 
     try:
         sd.check_input_settings(
@@ -180,6 +189,90 @@ def preflight_audio(config: dict, duration_s: float = 0.25, open_stream: bool = 
         and report["full_duplex_open"]["passed"]
     )
     return report
+
+
+def probe_audio_formats(config: dict, duration_s: float = 0.05, open_stream: bool = True) -> dict:
+    sd = _require_sounddevice()
+    selection = select_audio_device_pair(config)
+    audio = config["audio_device"]
+    sample_rate = int(audio["sample_rate_hz"])
+    block_size = int(audio["block_size_frames"])
+    candidates = _stream_dtype_candidates(config)
+    results = []
+    selected = None
+    for dtype in candidates:
+        item: dict[str, Any] = {
+            "stream_dtype": dtype,
+            "check_input_settings": {"passed": False, "exception": None},
+            "check_output_settings": {"passed": False, "exception": None},
+            "full_duplex_open": {"passed": False, "attempted": open_stream, "exception": None},
+            "passed": False,
+        }
+        try:
+            sd.check_input_settings(
+                device=selection.input_device_index,
+                channels=selection.requested_input_channels,
+                samplerate=sample_rate,
+                dtype=dtype,
+            )
+            item["check_input_settings"]["passed"] = True
+        except Exception as exc:
+            item["check_input_settings"]["exception"] = repr(exc)
+            results.append(item)
+            continue
+        try:
+            sd.check_output_settings(
+                device=selection.output_device_index,
+                channels=selection.requested_output_channels,
+                samplerate=sample_rate,
+                dtype=dtype,
+            )
+            item["check_output_settings"]["passed"] = True
+        except Exception as exc:
+            item["check_output_settings"]["exception"] = repr(exc)
+            results.append(item)
+            continue
+        if open_stream:
+            frames_seen = 0
+
+            def callback(indata, outdata, frames, callback_time, status):  # noqa: ARG001
+                nonlocal frames_seen
+                outdata.fill(0)
+                frames_seen += frames
+                if frames_seen >= int(round(duration_s * sample_rate)):
+                    raise sd.CallbackStop()
+
+            try:
+                with sd.Stream(
+                    device=(selection.input_device_index, selection.output_device_index),
+                    samplerate=sample_rate,
+                    blocksize=block_size,
+                    dtype=dtype,
+                    channels=(selection.requested_input_channels, selection.requested_output_channels),
+                    callback=callback,
+                ):
+                    sd.sleep(int((duration_s + 0.5) * 1000))
+                item["full_duplex_open"]["passed"] = True
+            except Exception as exc:
+                item["full_duplex_open"]["exception"] = repr(exc)
+                results.append(item)
+                continue
+        item["passed"] = bool(
+            item["check_input_settings"]["passed"]
+            and item["check_output_settings"]["passed"]
+            and (not open_stream or item["full_duplex_open"]["passed"])
+        )
+        results.append(item)
+        if item["passed"] and selected is None:
+            selected = dtype
+    return {
+        "selection": asdict(selection),
+        "sample_rate_hz": sample_rate,
+        "block_size_frames": block_size,
+        "candidates": results,
+        "selected_stream_dtype": selected,
+        "storage_dtype": _storage_dtype(config),
+    }
 
 
 def select_audio_device_pair(config: dict) -> AudioDevicePair:
@@ -538,14 +631,17 @@ def _record_signal(
     if simulate:
         _simulate_capture(playback, raw, timeline, sample_rate, block_size, channels)
         selection: AudioDevicePair | None = None
+        stream_dtype = "simulated_float32"
     else:
         selection = select_audio_device_pair(config)
+        stream_dtype = _select_stream_dtype_for_capture(config)
         _capture_full_duplex(
             config=config,
             playback=playback,
             raw=raw,
             timeline=timeline,
             selection=selection,
+            stream_dtype=stream_dtype,
         )
 
     attempt_dir = _attempt_directory(
@@ -587,6 +683,7 @@ def _record_signal(
         raw=raw,
         selection=selection,
         simulate=simulate,
+        stream_dtype=stream_dtype,
         files={
             "raw_input_wav": raw_input_wav,
             "playback_output_wav": playback_output_wav,
@@ -612,13 +709,14 @@ def _capture_full_duplex(
     raw: np.ndarray,
     timeline: dict[str, np.ndarray],
     selection: AudioDevicePair,
+    stream_dtype: str,
 ) -> None:
     sd = _require_sounddevice()
     audio = config["audio_device"]
     channels = audio["channel_selection"]
     sample_rate = int(audio["sample_rate_hz"])
     block_size = int(audio["block_size_frames"])
-    dtype = str(audio.get("dtype", "float32"))
+    dtype = stream_dtype
     mic_l = int(channels["mic_left_index"])
     mic_r = int(channels["mic_right_index"])
     ref = int(channels["reference_input_index"])
@@ -636,10 +734,10 @@ def _capture_full_duplex(
             stop = min(start + frames, len(playback))
             valid = stop - start
             if valid > 0:
-                outdata[:valid, :] = playback[start:stop, :]
-                raw[start:stop, 0] = indata[:valid, mic_l]
-                raw[start:stop, 1] = indata[:valid, mic_r]
-                raw[start:stop, 2] = indata[:valid, ref]
+                _copy_float_playback_to_stream_out(outdata[:valid, :], playback[start:stop, :])
+                raw[start:stop, 0] = _stream_input_to_float32(indata[:valid, mic_l])
+                raw[start:stop, 1] = _stream_input_to_float32(indata[:valid, mic_r])
+                raw[start:stop, 2] = _stream_input_to_float32(indata[:valid, ref])
             if block_index < len(timeline["frame_start"]):
                 timeline["frame_start"][block_index] = start
                 timeline["frames"][block_index] = frames
@@ -808,6 +906,7 @@ def _metadata(
     raw: np.ndarray,
     selection: AudioDevicePair | None,
     simulate: bool,
+    stream_dtype: str,
     files: dict[str, Path],
 ) -> dict:
     trial_id = f"brir_theta_{angle_deg:03d}_spk_{speaker}_rep{repetition:02d}"
@@ -823,6 +922,8 @@ def _metadata(
         "repetition": repetition,
         "attempt": attempt,
         "simulated": simulate,
+        "stream_dtype": stream_dtype,
+        "storage_dtype": _storage_dtype(config),
         "sample_rate_hz": sample_rate,
         "block_size_frames": block_size,
         "raw_channel_order": ["ear_L", "ear_R", "electrical_reference"],
@@ -873,6 +974,62 @@ def _write_wav_float32(path: Path, data: np.ndarray, sample_rate: int) -> None:
         sf.write(path, data.astype(np.float32, copy=False), sample_rate, subtype="FLOAT")
     except ImportError:
         _write_wav_float32_stdlib(path, data, sample_rate)
+
+
+def _select_stream_dtype_for_capture(config: dict) -> str:
+    audio = config["audio_device"]
+    configured = str(audio.get("stream_dtype", audio.get("dtype", "float32")))
+    if configured.lower() != "auto":
+        return configured
+    probe = probe_audio_formats(config, duration_s=0.02, open_stream=False)
+    selected = probe.get("selected_stream_dtype")
+    if not selected:
+        raise RuntimeError("no supported stream dtype found")
+    return str(selected)
+
+
+def _stream_dtype_candidates(config: dict) -> list[str]:
+    audio = config["audio_device"]
+    configured = str(audio.get("stream_dtype", audio.get("dtype", "float32")))
+    if configured.lower() != "auto":
+        return [configured]
+    candidates = audio.get("stream_dtype_candidates", DEFAULT_STREAM_DTYPE_CANDIDATES)
+    return [str(candidate) for candidate in candidates]
+
+
+def _storage_dtype(config: dict) -> str:
+    return str(config["audio_device"].get("storage_dtype", "float32"))
+
+
+def _copy_float_playback_to_stream_out(outdata: np.ndarray, playback: np.ndarray) -> None:
+    if np.issubdtype(outdata.dtype, np.floating):
+        outdata[:, :] = playback
+        return
+    if np.issubdtype(outdata.dtype, np.signedinteger):
+        info = np.iinfo(outdata.dtype)
+        scaled = np.clip(playback, -1.0, 1.0) * float(info.max)
+        outdata[:, :] = scaled.astype(outdata.dtype)
+        return
+    if np.issubdtype(outdata.dtype, np.unsignedinteger):
+        info = np.iinfo(outdata.dtype)
+        midpoint = (float(info.max) + 1.0) / 2.0
+        scaled = np.clip(playback, -1.0, 1.0) * (midpoint - 1.0) + midpoint
+        outdata[:, :] = np.clip(scaled, info.min, info.max).astype(outdata.dtype)
+        return
+    raise TypeError(f"unsupported PortAudio output dtype: {outdata.dtype}")
+
+
+def _stream_input_to_float32(indata: np.ndarray) -> np.ndarray:
+    if np.issubdtype(indata.dtype, np.floating):
+        return indata.astype(np.float32, copy=False)
+    if np.issubdtype(indata.dtype, np.signedinteger):
+        info = np.iinfo(indata.dtype)
+        return (indata.astype(np.float32) / float(info.max)).astype(np.float32)
+    if np.issubdtype(indata.dtype, np.unsignedinteger):
+        info = np.iinfo(indata.dtype)
+        midpoint = (float(info.max) + 1.0) / 2.0
+        return ((indata.astype(np.float32) - midpoint) / midpoint).astype(np.float32)
+    raise TypeError(f"unsupported PortAudio input dtype: {indata.dtype}")
 
 
 def _write_wav_float32_stdlib(path: Path, data: np.ndarray, sample_rate: int) -> None:

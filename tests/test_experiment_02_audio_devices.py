@@ -35,8 +35,9 @@ class FakeStream:
         if callback:
             channels = self.kwargs["channels"]
             frames = int(self.kwargs["blocksize"])
-            indata = np.zeros((frames, channels[0]), dtype=np.float32)
-            outdata = np.zeros((frames, channels[1]), dtype=np.float32)
+            dtype = np.dtype(self.kwargs.get("dtype", "float32"))
+            indata = np.zeros((frames, channels[0]), dtype=dtype)
+            outdata = np.zeros((frames, channels[1]), dtype=dtype)
             for _ in range(256):
                 try:
                     callback(indata, outdata, frames, FakeCallbackTime(), 0)
@@ -51,9 +52,10 @@ class FakeStream:
 class FakeSoundDevice:
     CallbackStop = FakeCallbackStop
 
-    def __init__(self, hostapis, devices):
+    def __init__(self, hostapis, devices, accepted_dtypes=None):
         self._hostapis = hostapis
         self._devices = devices
+        self.accepted_dtypes = set(accepted_dtypes or ["float32", "int32", "int16"])
         self.input_checks = []
         self.output_checks = []
         self.stream_calls = []
@@ -66,11 +68,17 @@ class FakeSoundDevice:
 
     def check_input_settings(self, **kwargs):
         self.input_checks.append(kwargs)
+        if kwargs.get("dtype") not in self.accepted_dtypes:
+            raise RuntimeError("Sample format not supported [PaErrorCode -9994]")
 
     def check_output_settings(self, **kwargs):
         self.output_checks.append(kwargs)
+        if kwargs.get("dtype") not in self.accepted_dtypes:
+            raise RuntimeError("Sample format not supported [PaErrorCode -9994]")
 
     def Stream(self, **kwargs):  # noqa: N802 - mirrors sounddevice API
+        if kwargs.get("dtype") not in self.accepted_dtypes:
+            raise RuntimeError("Sample format not supported [PaErrorCode -9994]")
         return FakeStream(self, **kwargs)
 
     def sleep(self, milliseconds):
@@ -178,9 +186,30 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertEqual(fake.stream_calls[0]["device"], (0, 1))
         self.assertEqual(fake.stream_calls[0]["channels"], (4, 4))
 
+    def test_format_probe_falls_back_when_float32_is_rejected(self):
+        config = load_yaml(CONFIG_PATH)
+        fake = FakeSoundDevice(*wdm_ks_devices(), accepted_dtypes=["int16"])
+        with patch.object(audio, "_require_sounddevice", return_value=fake):
+            result = audio.probe_audio_formats(config, duration_s=0.01, open_stream=True)
+
+        self.assertEqual(result["selected_stream_dtype"], "int16")
+        by_dtype = {item["stream_dtype"]: item for item in result["candidates"]}
+        self.assertFalse(by_dtype["float32"]["passed"])
+        self.assertTrue(by_dtype["int16"]["passed"])
+
+    def test_preflight_uses_selected_fallback_dtype(self):
+        config = load_yaml(CONFIG_PATH)
+        fake = FakeSoundDevice(*wdm_ks_devices(), accepted_dtypes=["int16"])
+        with patch.object(audio, "_require_sounddevice", return_value=fake):
+            result = audio.preflight_audio(config, duration_s=0.01, open_stream=True)
+
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["stream_dtype"], "int16")
+        self.assertEqual(fake.stream_calls[-1]["dtype"], "int16")
+
     def test_real_record_metadata_registers_both_devices_with_fake_stream(self):
         config = load_yaml(CONFIG_PATH)
-        fake = FakeSoundDevice(*wdm_ks_devices())
+        fake = FakeSoundDevice(*wdm_ks_devices(), accepted_dtypes=["int16"])
         with tempfile.TemporaryDirectory() as tmp:
             with patch.object(audio, "_require_sounddevice", return_value=fake):
                 result = audio.record_probe(
@@ -194,6 +223,8 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
 
         self.assertEqual(metadata["audio_selection"]["input_device_name"], "Analogue 1 + 2 (wc4800_8214)")
         self.assertEqual(metadata["audio_selection"]["output_device_name"], "Speakers (wr4800_8214)")
+        self.assertEqual(metadata["stream_dtype"], "int16")
+        self.assertEqual(metadata["storage_dtype"], "float32")
         self.assertEqual(fake.stream_calls[0]["device"], (0, 1))
 
     def test_dry_run_simulation_still_works_without_sounddevice(self):

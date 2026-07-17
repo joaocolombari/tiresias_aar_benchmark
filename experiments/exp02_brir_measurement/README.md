@@ -195,6 +195,17 @@ python -m tiresias_benchmark exp02-audio-list-devices
 
 Run a zero-output full-duplex preflight:
 
+First, probe stream sample formats. This emits only zeros and reports which
+PortAudio dtype is accepted by the selected input/output pair:
+
+```bash
+python -m tiresias_benchmark exp02-audio-format-probe \
+  --config experiments/exp02_brir_measurement/config.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_format_probe.json
+```
+
+Then run the full preflight:
+
 ```bash
 python -m tiresias_benchmark exp02-audio-preflight \
   --config experiments/exp02_brir_measurement/config.yaml \

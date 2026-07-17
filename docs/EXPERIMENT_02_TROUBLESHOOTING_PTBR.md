@@ -47,7 +47,9 @@ audio_device:
   open_input_channel_count: 4
   open_output_channel_count: 4
   sample_rate_hz: 48000
-  dtype: float32
+  stream_dtype: auto
+  stream_dtype_candidates: [float32, int32, int16]
+  storage_dtype: float32
 ```
 
 Use `input_device_index_override` e `output_device_index_override` somente como
@@ -80,6 +82,25 @@ output_device_name_contains: "Scarlett"
 
 ## Preflight falha
 
+Primeiro rode o probe de formatos:
+
+```bash
+python -m tiresias_benchmark exp02-audio-format-probe \
+  --config experiments/exp02_brir_measurement/config.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_format_probe.json
+```
+
+Se `float32` falhar com:
+
+```text
+Sample format not supported [PaErrorCode -9994]
+```
+
+isso não significa que o par input/output esteja errado. Significa que o driver
+recusou aquele formato. O probe testa `float32`, `int32` e `int16`, selecionando
+o primeiro formato que passa em `check_input_settings`, `check_output_settings`
+e abertura full-duplex.
+
 Rode:
 
 ```bash
@@ -103,10 +124,15 @@ Falhas comuns:
 - `host API mismatch`: input e output não estão na mesma API;
 - `insufficient input channels`: aumente/ajuste o dispositivo de entrada;
 - `insufficient output channels`: ajuste o dispositivo de saída;
-- `unsupported input settings`: driver recusou 4 canais, 48 kHz ou float32;
-- `unsupported output settings`: saída recusou 4 canais, 48 kHz ou float32;
+- `unsupported input settings`: driver recusou 4 canais, 48 kHz ou o formato selecionado;
+- `unsupported output settings`: saída recusou 4 canais, 48 kHz ou o formato selecionado;
 - `full-duplex pair open failed`: o par foi encontrado, mas o driver recusou a
   stream simultânea.
+
+Mesmo quando o stream usa `int16` ou `int32`, o callback converte a entrada
+para float32 antes de salvar o `raw_input.wav`. O playback float também é
+escalado corretamente para o dtype inteiro do stream, evitando silêncio por
+truncamento.
 
 ## O canal de referência não aparece
 

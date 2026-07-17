@@ -298,6 +298,21 @@ def cmd_exp02_audio_preflight(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2))
 
 
+def cmd_exp02_audio_format_probe(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    try:
+        result = audio.probe_audio_formats(
+            config,
+            duration_s=args.duration_s,
+            open_stream=not args.no_open_stream,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    _write_optional_json(args.output, result)
+    print(json.dumps(result, indent=2))
+
+
 def cmd_exp02_channel_probe(args: argparse.Namespace) -> None:
     config = load_yaml(args.config)
     audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
@@ -424,6 +439,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-open-stream", action="store_true")
     p.add_argument("--output")
     p.set_defaults(func=cmd_exp02_audio_preflight)
+
+    p = sub.add_parser("exp02-audio-format-probe")
+    p.add_argument("--config", required=True)
+    p.add_argument("--duration-s", type=float, default=0.05)
+    p.add_argument("--no-open-stream", action="store_true")
+    p.add_argument("--output")
+    p.set_defaults(func=cmd_exp02_audio_format_probe)
 
     p = sub.add_parser("exp02-channel-probe")
     p.add_argument("--config", required=True)

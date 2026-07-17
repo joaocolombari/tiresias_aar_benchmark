@@ -152,6 +152,28 @@ sounddevice.Stream(device=(input_device, output_device), channels=(4, 4))
 
 Rode o preflight full-duplex com saída digital zero:
 
+Primeiro descubra qual formato de stream o driver aceita:
+
+```bash
+python -m tiresias_benchmark exp02-audio-format-probe \
+  --config experiments/exp02_brir_measurement/config.yaml \
+  --output experiments/exp02_brir_measurement/metrics/audio_format_probe.json
+```
+
+O YAML atual usa:
+
+```yaml
+stream_dtype: auto
+stream_dtype_candidates: [float32, int32, int16]
+storage_dtype: float32
+```
+
+Se `float32` falhar com `Sample format not supported`, a aplicação tenta
+`int32` e depois `int16`. Mesmo quando o stream usa inteiro, os arquivos
+`raw_input.wav` e `playback_output.wav` continuam sendo salvos como float32.
+
+Depois rode o preflight:
+
 ```bash
 python -m tiresias_benchmark exp02-audio-preflight \
   --config experiments/exp02_brir_measurement/config.yaml \

@@ -114,7 +114,12 @@ audio_device:
   output_device_index_override: null
   sample_rate_hz: 48000
   block_size_frames: 512
-  dtype: float32
+  stream_dtype: auto
+  stream_dtype_candidates:
+    - float32
+    - int32
+    - int16
+  storage_dtype: float32
   open_input_channel_count: 4
   open_output_channel_count: 4
   exclusive_required: true
