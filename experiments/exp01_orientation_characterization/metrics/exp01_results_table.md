@@ -1,15 +1,36 @@
 # Experiment 1 Summary Tables
 
-## Orientation
+## Orientation Across Runs
 
-| Metric | Sign-corrected | Drift-corrected |
+| Metric | Sign-corrected, mean +/- SD | Drift-corrected, mean +/- SD |
 |---|---:|---:|
-| MAE (deg) | 20.43 | 0.356 |
-| RMSE (deg) | 23.74 | 0.473 |
-| Bias (deg) | -20.43 | 0.000 |
-| Max abs error (deg) | 51.48 | 2.043 |
+| MAE (deg) | 20.43 +/- 5.752 | 0.356 +/- 0.104 |
+| RMSE (deg) | 23.14 +/- 6.526 | 0.462 +/- 0.125 |
+| Bias (deg) | -20.43 +/- 5.752 | 0.000 +/- 0.000 |
+| Max abs error (deg) | 38.56 +/- 11.30 | 1.631 +/- 0.697 |
+| Closure error (deg) | -25.34 +/- 11.98 | -0.273 +/- 1.240 |
+| Drift slope (deg/min) | -2.856 +/- 0.395 | corrected by model |
 
-## BLE Timing
+## Orientation By Run
+
+| Run | MAE sign-corrected (deg) | MAE drift-corrected (deg) | RMSE drift-corrected (deg) | Closure drift-corrected (deg) | Drift slope (deg/min) |
+|---|---:|---:|---:|---:|---:|
+| ascending | 17.42 | 0.361 | 0.476 | -1.704 | -2.444 |
+| descending | 16.81 | 0.249 | 0.330 | 0.418 | -2.892 |
+| randomized | 27.06 | 0.457 | 0.580 | 0.467 | -3.231 |
+
+## BLE Timing Across Runs
+
+| Metric | Mean +/- SD |
+|---|---:|
+| Effective notification rate (Hz) | 40.72 +/- 0.080 |
+| Mean interval (ms) | 24.56 +/- 0.048 |
+| Interval P95 (ms) | 40.70 +/- 3.188 |
+| Interval P99 (ms) | 59.43 +/- 5.999 |
+| Jitter P95 from median (ms) | 20.73 +/- 2.750 |
+| Packet loss vs modal seq step (%) | 0.109 +/- 0.100 |
+
+## BLE Timing By Run
 
 | Run | Rate (Hz) | Mean interval (ms) | Interval P95 (ms) | Jitter P95 (ms) | Seq step mode | Packet loss vs modal step (%) |
 |---|---:|---:|---:|---:|---:|---:|

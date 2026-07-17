@@ -287,6 +287,7 @@ segmented_randomized_*.csv
 gere as figuras e tabelas combinadas:
 
 ```bash
+py -m pip install -e ".[ble,metrics,dev]"
 py -m tiresias_benchmark figures-generate --config experiments/exp01_orientation_characterization/config.yaml --overwrite
 ```
 
@@ -310,6 +311,10 @@ py -m tiresias_benchmark figures-generate --config experiments/exp01_orientation
 
 Use a prévia apenas para inspeção; para o artigo, gere sem
 `--allow-missing-runs`.
+
+As figuras finais usam Matplotlib. Se o comando avisar que `matplotlib` não
+está instalado, rode novamente a instalação editável acima no ambiente Python
+ativo.
 
 ## 19. Figuras antigas
 

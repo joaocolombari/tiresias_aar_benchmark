@@ -48,6 +48,7 @@ class Experiment01FigureTests(unittest.TestCase):
                 raw_dir=raw,
                 output_dir=figures,
                 metrics_dir=metrics,
+                allow_svg_fallback=True,
             )
 
             for path in outputs.__dict__.values():

@@ -48,6 +48,7 @@ def generate_experiment_01_figures(
     require_all_runs: bool = True,
     sign_mode: str = "auto",
     overwrite: bool = False,
+    allow_svg_fallback: bool = False,
 ) -> FigureOutputs:
     base = Path("experiments/exp01_orientation_characterization")
     processed_dir = processed_dir or base / "processed"
@@ -93,9 +94,17 @@ def generate_experiment_01_figures(
     _write_ble_summary_csv(outputs.ble_summary_csv, ble_rows)
     outputs.metrics_json.write_text(json.dumps(metrics, indent=2) + "\n")
     outputs.results_table_md.write_text(_results_table_markdown(metrics, ble_rows) + "\n")
-    outputs.orientation_summary_svg.write_text(_orientation_summary_svg(position_rows))
-    outputs.drift_correction_svg.write_text(_drift_correction_svg(corrected_samples, group_models))
-    outputs.ble_timing_svg.write_text(_ble_timing_svg(ble_intervals, ble_rows))
+    if _matplotlib_available():
+        _write_matplotlib_figures(outputs, position_rows, corrected_samples, group_models, ble_intervals, ble_rows)
+    elif not allow_svg_fallback:
+        raise RuntimeError(
+            "matplotlib is required for publication figures. "
+            "Install dependencies with `python -m pip install -e .` and rerun."
+        )
+    else:
+        outputs.orientation_summary_svg.write_text(_orientation_summary_svg(position_rows))
+        outputs.drift_correction_svg.write_text(_drift_correction_svg(corrected_samples, group_models))
+        outputs.ble_timing_svg.write_text(_ble_timing_svg(ble_intervals, ble_rows))
     return outputs
 
 
@@ -338,6 +347,9 @@ def _combined_metrics(samples: list[dict], models: dict, ble_rows: list[dict]) -
     signed_stats = angular_error_stats(reference, signed)
     corrected_stats = angular_error_stats(reference, corrected)
     closure = _corrected_closure_errors(samples)
+    run_metrics = _run_metrics(samples, models, closure)
+    run_metric_summary = _run_metric_summary(run_metrics)
+    ble_summary = _ble_metric_summary(ble_rows)
     model_rows = [
         {
             "group_key": key,
@@ -358,7 +370,90 @@ def _combined_metrics(samples: list[dict], models: dict, ble_rows: list[dict]) -
         "sign_corrected": _stats_dict(signed_stats),
         "drift_corrected": _stats_dict(corrected_stats),
         "closure_errors_deg": closure,
+        "run_metrics": run_metrics,
+        "run_metric_summary": run_metric_summary,
+        "ble_summary": ble_summary,
         "ble": ble_rows,
+    }
+
+
+def _run_metrics(samples: list[dict], models: dict, closure: dict) -> list[dict]:
+    grouped = defaultdict(list)
+    for sample in samples:
+        grouped[sample["group_key"]].append(sample)
+    rows = []
+    for key, values in sorted(grouped.items()):
+        global_rows = [sample for sample in values if not sample["is_closure_measurement"]]
+        if not global_rows:
+            continue
+        reference = np.array([sample["reference_angle_normalized_deg"] for sample in global_rows])
+        signed = np.array([sample["yaw_sign_corrected_deg"] for sample in global_rows])
+        corrected = np.array([sample["yaw_drift_corrected_deg"] for sample in global_rows])
+        signed_stats = angular_error_stats(reference, signed)
+        corrected_stats = angular_error_stats(reference, corrected)
+        run_type = global_rows[0]["run_type"]
+        model = models[key]
+        closure_row = closure.get(run_type, {})
+        rows.append(
+            {
+                "run_type": run_type,
+                "group_key": key,
+                "sample_count": len(global_rows),
+                "sign_corrected_mae_deg": signed_stats.mae_deg,
+                "sign_corrected_rmse_deg": signed_stats.rmse_deg,
+                "sign_corrected_bias_deg": signed_stats.bias_deg,
+                "sign_corrected_max_abs_error_deg": signed_stats.max_abs_error_deg,
+                "drift_corrected_mae_deg": corrected_stats.mae_deg,
+                "drift_corrected_rmse_deg": corrected_stats.rmse_deg,
+                "drift_corrected_bias_deg": corrected_stats.bias_deg,
+                "drift_corrected_max_abs_error_deg": corrected_stats.max_abs_error_deg,
+                "sign_corrected_closure_error_deg": closure_row.get("sign_corrected_deg"),
+                "drift_corrected_closure_error_deg": closure_row.get("drift_corrected_deg"),
+                "drift_slope_deg_per_minute": model["slope_deg_per_s"] * 60.0,
+                "fit_duration_s": model["fit_duration_s"],
+            }
+        )
+    return rows
+
+
+def _run_metric_summary(run_metrics: list[dict]) -> dict:
+    fields = [
+        "sign_corrected_mae_deg",
+        "sign_corrected_rmse_deg",
+        "sign_corrected_bias_deg",
+        "sign_corrected_max_abs_error_deg",
+        "drift_corrected_mae_deg",
+        "drift_corrected_rmse_deg",
+        "drift_corrected_bias_deg",
+        "drift_corrected_max_abs_error_deg",
+        "sign_corrected_closure_error_deg",
+        "drift_corrected_closure_error_deg",
+        "drift_slope_deg_per_minute",
+    ]
+    return {field: _mean_sd([row.get(field) for row in run_metrics]) for field in fields}
+
+
+def _ble_metric_summary(ble_rows: list[dict]) -> dict:
+    fields = [
+        "effective_rate_hz",
+        "interval_mean_ms",
+        "interval_p95_ms",
+        "interval_p99_ms",
+        "jitter_abs_from_median_p95_ms",
+        "jitter_abs_from_median_p99_ms",
+        "packet_loss_percent_relative_to_modal_step",
+    ]
+    return {field: _mean_sd([row.get(field) for row in ble_rows]) for field in fields}
+
+
+def _mean_sd(values: list[float | None]) -> dict[str, float | int | None]:
+    finite = [float(value) for value in values if value is not None and math.isfinite(float(value))]
+    if not finite:
+        return {"mean": None, "sd": None, "n": 0}
+    return {
+        "mean": float(np.mean(finite)),
+        "sd": float(np.std(finite, ddof=1)) if len(finite) > 1 else 0.0,
+        "n": len(finite),
     }
 
 
@@ -482,6 +577,268 @@ def _write_ble_summary_csv(path: Path, rows: list[dict]) -> None:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _matplotlib_available() -> bool:
+    try:
+        import matplotlib  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _write_matplotlib_figures(
+    outputs: FigureOutputs,
+    position_rows: list[dict],
+    samples: list[dict],
+    models: dict,
+    intervals_by_run: dict[str, list[float]],
+    ble_rows: list[dict],
+) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    plt.rcParams.update(
+        {
+            "font.size": 8,
+            "axes.titlesize": 9,
+            "axes.labelsize": 8,
+            "xtick.labelsize": 7,
+            "ytick.labelsize": 7,
+            "legend.fontsize": 7,
+            "svg.fonttype": "none",
+        }
+    )
+
+    _plot_orientation_summary_matplotlib(plt, outputs.orientation_summary_svg, position_rows)
+    _plot_drift_correction_matplotlib(plt, outputs.drift_correction_svg, samples, models)
+    _plot_ble_timing_matplotlib(plt, outputs.ble_timing_svg, intervals_by_run, ble_rows)
+
+
+def _plot_orientation_summary_matplotlib(plt, path: Path, rows: list[dict]) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.9))
+    ax_yaw, ax_err = axes
+    run_order = [run for run in ["ascending", "descending", "randomized"] if any(row["run_type"] == run for row in rows)]
+
+    for run in run_order:
+        run_rows = sorted(
+            [row for row in rows if row["run_type"] == run],
+            key=_plot_x_for_position_row,
+        )
+        color = RUN_COLORS.get(run, "#333333")
+        nonclosure = [row for row in run_rows if not row["is_closure_measurement"]]
+        closure = [row for row in run_rows if row["is_closure_measurement"]]
+        ax_yaw.scatter(
+            [_plot_x_for_position_row(row) for row in nonclosure],
+            [_plot_y_from_error(row, "error_drift_corrected_mean_deg") for row in nonclosure],
+            marker="o",
+            s=12,
+            color=color,
+            alpha=0.78,
+            label=run,
+        )
+        if closure:
+            ax_yaw.scatter(
+                [_plot_x_for_position_row(row) for row in closure],
+                [_plot_y_from_error(row, "error_drift_corrected_mean_deg") for row in closure],
+                marker="s",
+                s=24,
+                color=color,
+                alpha=0.78,
+                zorder=3,
+            )
+
+        ax_err.scatter(
+            [_plot_x_for_position_row(row) for row in run_rows],
+            [row["error_drift_corrected_mean_deg"] for row in run_rows],
+            marker="o",
+            s=12,
+            color=color,
+            alpha=0.68,
+        )
+
+    by_angle = _between_run_error_summary(rows)
+    if by_angle:
+        x = np.array([row["reference_angle_commanded_deg"] for row in by_angle])
+        yaw_mean = x + np.array([row["mean_error_drift_corrected_deg"] for row in by_angle])
+        yaw_sd = np.array([row["sd_error_drift_corrected_deg"] for row in by_angle])
+        ax_yaw.errorbar(
+            x,
+            yaw_mean,
+            yerr=yaw_sd,
+            fmt="o-",
+            color="#111111",
+            ecolor="#666666",
+            elinewidth=0.75,
+            capsize=2,
+            markersize=3.2,
+            linewidth=1.1,
+            label="mean +/- SD",
+            zorder=4,
+        )
+        ax_err.errorbar(
+            x,
+            [row["mean_error_drift_corrected_deg"] for row in by_angle],
+            yerr=yaw_sd,
+            fmt="o-",
+            color="#111111",
+            ecolor="#666666",
+            elinewidth=0.75,
+            capsize=2.2,
+            markersize=3.2,
+            linewidth=1.1,
+            label="mean +/- SD",
+            zorder=4,
+        )
+
+    ax_yaw.plot([0, 360], [0, 360], color="#222222", linestyle=":", linewidth=1.1, label="ideal")
+    ax_yaw.set_title("A. Drift-corrected yaw")
+    ax_yaw.set_xlabel("Physical angle (deg)")
+    ax_yaw.set_ylabel("Yaw (deg)")
+    ax_yaw.set_xlim(-5, 365)
+    ax_yaw.set_ylim(-8, 368)
+    ax_yaw.set_xticks(np.arange(0, 361, 60))
+    ax_yaw.set_yticks(np.arange(0, 361, 90))
+    ax_yaw.grid(True, alpha=0.25)
+
+    ax_err.axhline(0, color="#222222", linewidth=0.9)
+    ax_err.set_title("B. Drift-corrected circular error")
+    ax_err.set_xlabel("Physical angle (deg)")
+    ax_err.set_ylabel("Error (deg)")
+    ax_err.set_xlim(-5, 365)
+    error_extent = max(
+        2.5,
+        max(abs(float(row["error_drift_corrected_mean_deg"])) for row in rows) + 0.5,
+    )
+    ax_err.set_ylim(-error_extent, error_extent)
+    ax_err.set_xticks(np.arange(0, 361, 60))
+    ax_err.grid(True, alpha=0.25)
+    handles, labels = ax_yaw.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=5, frameon=False, fontsize=8)
+    fig.subplots_adjust(left=0.085, right=0.99, bottom=0.18, top=0.78, wspace=0.34)
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _plot_x_for_position_row(row: dict) -> float:
+    if row["is_closure_measurement"]:
+        return float(row["reference_angle_commanded_deg"])
+    return float(row["reference_angle_normalized_deg"])
+
+
+def _plot_y_from_error(row: dict, error_key: str) -> float:
+    return _plot_x_for_position_row(row) + float(row[error_key])
+
+
+def _between_run_error_summary(rows: list[dict]) -> list[dict]:
+    grouped = defaultdict(list)
+    for row in rows:
+        if row["is_closure_measurement"]:
+            continue
+        grouped[row["reference_angle_normalized_deg"]].append(row["error_drift_corrected_mean_deg"])
+    summary = []
+    for angle, values in grouped.items():
+        if len(values) < 2:
+            sd = 0.0
+        else:
+            sd = float(np.std(values, ddof=1))
+        summary.append(
+            {
+                "reference_angle_commanded_deg": angle,
+                "mean_error_drift_corrected_deg": float(np.mean(values)),
+                "sd_error_drift_corrected_deg": sd,
+            }
+        )
+    return sorted(summary, key=lambda row: row["reference_angle_commanded_deg"])
+
+
+def _plot_drift_correction_matplotlib(plt, path: Path, samples: list[dict], models: dict) -> None:
+    run_order = [run for run in ["ascending", "descending", "randomized"] if any(sample["run_type"] == run for sample in samples)]
+    fig, axes = plt.subplots(len(run_order), 1, figsize=(7.2, 1.45 * len(run_order)), sharex=False)
+    if len(run_order) == 1:
+        axes = [axes]
+    for ax, run in zip(axes, run_order):
+        run_samples = [
+            sample
+            for sample in samples
+            if sample["run_type"] == run and not sample["is_closure_measurement"] and sample["elapsed_s"] is not None
+        ]
+        if not run_samples:
+            continue
+        run_samples = sorted(run_samples, key=lambda sample: sample["elapsed_s"])
+        shown = _position_mean_samples(run_samples)
+        color = RUN_COLORS.get(run, "#333333")
+        t_min = np.array([sample["elapsed_s"] / 60.0 for sample in shown])
+        raw_err = np.array([sample["error_sign_corrected_deg"] for sample in shown])
+        corrected_err = np.array([sample["error_drift_corrected_deg"] for sample in shown])
+        key = run_samples[0]["group_key"]
+        model = models[key]
+        fit_t_s = np.linspace(0, max(sample["elapsed_s"] for sample in run_samples), 200)
+        fit_err = model["intercept_deg"] + model["slope_deg_per_s"] * fit_t_s
+        ax.plot(t_min, raw_err, "o", markersize=3.0, color=color, alpha=0.75, label="sign-corrected")
+        ax.plot(fit_t_s / 60.0, fit_err, color="#c0392b", linewidth=1.4, label="linear drift fit")
+        ax.plot(t_min, corrected_err, "o", markersize=3.0, color="#222222", alpha=0.75, label="corrected residual")
+        ax.axhline(0, color="#222222", linewidth=0.8)
+        ax.set_title(f"{run}: slope {model['slope_deg_per_s'] * 60.0:+.2f} deg/min", fontsize=9, loc="left")
+        ax.set_ylabel("Error (deg)")
+        ax.set_ylim(-60, 8)
+        ax.grid(True, alpha=0.25)
+    axes[-1].set_xlabel("Elapsed time within run (min)")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.015), ncol=3, frameon=False, fontsize=8)
+    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.12, top=0.86, hspace=0.62)
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _position_mean_samples(samples: list[dict]) -> list[dict]:
+    grouped = defaultdict(list)
+    for sample in samples:
+        grouped[(sample["group_key"], sample["position_index"])].append(sample)
+    rows = []
+    for (_group_key, _position_index), values in grouped.items():
+        values = sorted(values, key=lambda sample: sample["elapsed_s"])
+        rows.append(
+            {
+                "elapsed_s": mean(sample["elapsed_s"] for sample in values),
+                "error_sign_corrected_deg": mean(sample["error_sign_corrected_deg"] for sample in values),
+                "error_drift_corrected_deg": mean(sample["error_drift_corrected_deg"] for sample in values),
+            }
+        )
+    return sorted(rows, key=lambda row: row["elapsed_s"])
+
+
+def _plot_ble_timing_matplotlib(
+    plt,
+    path: Path,
+    intervals_by_run: dict[str, list[float]],
+    ble_rows: list[dict],
+) -> None:
+    fig, ax = plt.subplots(figsize=(7.2, 2.65))
+    bins = np.linspace(0, 80, 45)
+    for run in ["ascending", "descending", "randomized"]:
+        values = intervals_by_run.get(run)
+        if not values:
+            continue
+        ax.hist(
+            values,
+            bins=bins,
+            histtype="step",
+            linewidth=1.4,
+            color=RUN_COLORS.get(run, "#333333"),
+            label=run,
+        )
+    ax.set_title("BLE notification interval distribution", fontsize=10)
+    ax.set_xlabel("Receive interval (ms)")
+    ax.set_ylabel("Count")
+    ax.set_xlim(0, 80)
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False, fontsize=8, loc="upper right")
+    fig.subplots_adjust(left=0.08, right=0.99, bottom=0.22, top=0.88)
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
 
 
 def _orientation_summary_svg(rows: list[dict]) -> str:
@@ -786,25 +1143,53 @@ def _svg_header(width: int, height: int) -> str:
 
 
 def _results_table_markdown(metrics: dict, ble_rows: list[dict]) -> str:
-    signed = metrics["sign_corrected"]
-    corrected = metrics["drift_corrected"]
+    summary = metrics["run_metric_summary"]
+    ble_summary = metrics["ble_summary"]
     lines = [
         "# Experiment 1 Summary Tables",
         "",
-        "## Orientation",
+        "## Orientation Across Runs",
         "",
-        "| Metric | Sign-corrected | Drift-corrected |",
+        "| Metric | Sign-corrected, mean +/- SD | Drift-corrected, mean +/- SD |",
         "|---|---:|---:|",
-        f"| MAE (deg) | {_fmt(signed['mae_deg'])} | {_fmt(corrected['mae_deg'])} |",
-        f"| RMSE (deg) | {_fmt(signed['rmse_deg'])} | {_fmt(corrected['rmse_deg'])} |",
-        f"| Bias (deg) | {_fmt(signed['bias_deg'])} | {_fmt(corrected['bias_deg'])} |",
-        f"| Max abs error (deg) | {_fmt(signed['max_abs_error_deg'])} | {_fmt(corrected['max_abs_error_deg'])} |",
+        f"| MAE (deg) | {_fmt_mean_sd(summary['sign_corrected_mae_deg'])} | {_fmt_mean_sd(summary['drift_corrected_mae_deg'])} |",
+        f"| RMSE (deg) | {_fmt_mean_sd(summary['sign_corrected_rmse_deg'])} | {_fmt_mean_sd(summary['drift_corrected_rmse_deg'])} |",
+        f"| Bias (deg) | {_fmt_mean_sd(summary['sign_corrected_bias_deg'])} | {_fmt_mean_sd(summary['drift_corrected_bias_deg'])} |",
+        f"| Max abs error (deg) | {_fmt_mean_sd(summary['sign_corrected_max_abs_error_deg'])} | {_fmt_mean_sd(summary['drift_corrected_max_abs_error_deg'])} |",
+        f"| Closure error (deg) | {_fmt_mean_sd(summary['sign_corrected_closure_error_deg'])} | {_fmt_mean_sd(summary['drift_corrected_closure_error_deg'])} |",
+        f"| Drift slope (deg/min) | {_fmt_mean_sd(summary['drift_slope_deg_per_minute'])} | corrected by model |",
         "",
-        "## BLE Timing",
+        "## Orientation By Run",
         "",
-        "| Run | Rate (Hz) | Mean interval (ms) | Interval P95 (ms) | Jitter P95 (ms) | Seq step mode | Packet loss vs modal step (%) |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| Run | MAE sign-corrected (deg) | MAE drift-corrected (deg) | RMSE drift-corrected (deg) | Closure drift-corrected (deg) | Drift slope (deg/min) |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
+    for row in metrics["run_metrics"]:
+        lines.append(
+            f"| {row['run_type']} | {_fmt(row['sign_corrected_mae_deg'])} | "
+            f"{_fmt(row['drift_corrected_mae_deg'])} | {_fmt(row['drift_corrected_rmse_deg'])} | "
+            f"{_fmt(row['drift_corrected_closure_error_deg'])} | {_fmt(row['drift_slope_deg_per_minute'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## BLE Timing Across Runs",
+            "",
+            "| Metric | Mean +/- SD |",
+            "|---|---:|",
+            f"| Effective notification rate (Hz) | {_fmt_mean_sd(ble_summary['effective_rate_hz'])} |",
+            f"| Mean interval (ms) | {_fmt_mean_sd(ble_summary['interval_mean_ms'])} |",
+            f"| Interval P95 (ms) | {_fmt_mean_sd(ble_summary['interval_p95_ms'])} |",
+            f"| Interval P99 (ms) | {_fmt_mean_sd(ble_summary['interval_p99_ms'])} |",
+            f"| Jitter P95 from median (ms) | {_fmt_mean_sd(ble_summary['jitter_abs_from_median_p95_ms'])} |",
+            f"| Packet loss vs modal seq step (%) | {_fmt_mean_sd(ble_summary['packet_loss_percent_relative_to_modal_step'])} |",
+            "",
+            "## BLE Timing By Run",
+            "",
+            "| Run | Rate (Hz) | Mean interval (ms) | Interval P95 (ms) | Jitter P95 (ms) | Seq step mode | Packet loss vs modal step (%) |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
     for row in ble_rows:
         lines.append(
             f"| {row['run_type']} | {_fmt(row['effective_rate_hz'])} | "
@@ -866,6 +1251,12 @@ def _fmt(value) -> str:
     if abs(value) >= 10:
         return f"{value:.2f}"
     return f"{value:.3f}"
+
+
+def _fmt_mean_sd(summary: dict) -> str:
+    if not summary or summary.get("mean") is None:
+        return "NA"
+    return f"{_fmt(summary['mean'])} +/- {_fmt(summary['sd'])}"
 
 
 def _float_or_none(value: str | None) -> float | None:

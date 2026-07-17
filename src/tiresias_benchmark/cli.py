@@ -263,7 +263,7 @@ def cmd_figures_generate(args: argparse.Namespace) -> None:
             sign_mode=args.sign,
             overwrite=args.overwrite,
         )
-    except (FileExistsError, FileNotFoundError, ValueError) as exc:
+    except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
     print(json.dumps({key: str(value) for key, value in outputs.__dict__.items()}, indent=2))
 
