@@ -106,9 +106,41 @@ def wdm_ks_devices():
     return hostapis, devices
 
 
+def wdm_ks_config():
+    config = load_yaml(CONFIG_PATH)
+    config["audio_device"]["preferred_host_api"] = "Windows WDM-KS"
+    config["audio_device"]["input_device_name_contains"] = "Analogue 1 + 2"
+    config["audio_device"]["output_device_name_contains"] = "Speakers"
+    config["audio_device"]["stream_dtype_candidates"] = ["float32", "int32", "int16"]
+    return config
+
+
+def core_audio_devices():
+    hostapis = [{"name": "Core Audio", "default_input_device": 0, "default_output_device": 0}]
+    devices = [
+        {
+            "name": "Scarlett 18i8 USB",
+            "hostapi": 0,
+            "max_input_channels": 8,
+            "max_output_channels": 8,
+            "default_samplerate": 48000.0,
+        }
+    ]
+    return hostapis, devices
+
+
 class Experiment02AudioDeviceTests(unittest.TestCase):
-    def test_selects_separate_wdm_ks_input_output_pair(self):
+    def test_default_config_selects_core_audio_scarlett(self):
         config = load_yaml(CONFIG_PATH)
+        hostapis, devices = core_audio_devices()
+        pair = audio.select_audio_device_pair_from_query(config, hostapis, devices)
+
+        self.assertEqual(pair.input_device_index, 0)
+        self.assertEqual(pair.output_device_index, 0)
+        self.assertEqual(pair.host_api_name, "Core Audio")
+
+    def test_selects_separate_wdm_ks_input_output_pair(self):
+        config = wdm_ks_config()
         hostapis, devices = wdm_ks_devices()
         pair = audio.select_audio_device_pair_from_query(config, hostapis, devices)
 
@@ -119,7 +151,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertEqual(pair.requested_output_channels, 4)
 
     def test_list_classifies_directions_and_candidate_pairs(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         fake = FakeSoundDevice(*wdm_ks_devices())
         with patch.object(audio, "_require_sounddevice", return_value=fake):
             result = audio.list_audio_devices(config)
@@ -129,7 +161,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertTrue(result["candidate_pairs"][0]["supports_requested_settings"])
 
     def test_rejects_host_api_mismatch(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         config["audio_device"]["preferred_host_api"] = ""
         hostapis, devices = wdm_ks_devices()
         hostapis.append({"name": "ASIO", "default_input_device": -1, "default_output_device": -1})
@@ -139,7 +171,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
             audio.select_audio_device_pair_from_query(config, hostapis, devices)
 
     def test_rejects_insufficient_input_channels(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         hostapis, devices = wdm_ks_devices()
         devices[0] = {**devices[0], "max_input_channels": 2}
 
@@ -147,7 +179,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
             audio.select_audio_device_pair_from_query(config, hostapis, devices)
 
     def test_rejects_insufficient_output_channels(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         hostapis, devices = wdm_ks_devices()
         devices[1] = {**devices[1], "max_output_channels": 2}
 
@@ -197,7 +229,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertEqual(pair.host_api_name, "ASIO")
 
     def test_preflight_opens_single_stream_with_device_pair_and_4x4_channels(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         fake = FakeSoundDevice(*wdm_ks_devices())
         with patch.object(audio, "_require_sounddevice", return_value=fake):
             result = audio.preflight_audio(config, duration_s=0.01, open_stream=True)
@@ -209,7 +241,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertEqual(fake.stream_calls[0]["channels"], (4, 4))
 
     def test_format_probe_falls_back_when_float32_is_rejected(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         fake = FakeSoundDevice(*wdm_ks_devices(), accepted_dtypes=["int16"])
         with patch.object(audio, "_require_sounddevice", return_value=fake):
             result = audio.probe_audio_formats(config, duration_s=0.01, open_stream=True)
@@ -220,7 +252,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertTrue(by_dtype["int16"]["passed"])
 
     def test_preflight_uses_selected_fallback_dtype(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         fake = FakeSoundDevice(*wdm_ks_devices(), accepted_dtypes=["int16"])
         with patch.object(audio, "_require_sounddevice", return_value=fake):
             result = audio.preflight_audio(config, duration_s=0.01, open_stream=True)
@@ -230,7 +262,7 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
         self.assertEqual(fake.stream_calls[-1]["dtype"], "int16")
 
     def test_real_record_metadata_registers_both_devices_with_fake_stream(self):
-        config = load_yaml(CONFIG_PATH)
+        config = wdm_ks_config()
         fake = FakeSoundDevice(*wdm_ks_devices(), accepted_dtypes=["int16"])
         with tempfile.TemporaryDirectory() as tmp:
             with patch.object(audio, "_require_sounddevice", return_value=fake):

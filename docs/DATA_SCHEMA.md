@@ -76,24 +76,7 @@ operator confirmations and QC decision.
 
 `callback_timeline.csv` records one row per audio callback/block. At minimum it
 should contain absolute frame index, frames in block, PortAudio status flags and
-available host/device timing fields.
-
-`ble_notifications.csv` records one row per BLE notification:
-
-- `host_time_ns`;
-- `sender`;
-- `characteristic_uuid`;
-- `payload_len`;
-- `payload_hex`;
-- `decode_status`;
-- `qw`, `qx`, `qy`, `qz`;
-- `quaternion_norm`;
-- `estimated_audio_frame`;
-- `mapping_uncertainty_frames`.
-
-The current firmware BLE payload does not include sequence number or device
-timestamp, so Experiment 2 must not infer packet loss or device-clock latency
-from fields that are not present.
+available host/device timing fields. Experiment 2 does not record BLE telemetry.
 
 ## Benchmark Result Tables
 

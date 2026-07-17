@@ -1134,9 +1134,9 @@ def _device_direction(device: dict) -> str:
 def _default_audio_listing_config() -> dict:
     return {
         "audio_device": {
-            "preferred_host_api": "Windows WDM-KS",
-            "input_device_name_contains": "Analogue 1 + 2",
-            "output_device_name_contains": "Speakers",
+            "preferred_host_api": "Core Audio",
+            "input_device_name_contains": "Scarlett",
+            "output_device_name_contains": "Scarlett",
             "open_input_channel_count": 4,
             "open_output_channel_count": 4,
         }

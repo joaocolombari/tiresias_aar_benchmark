@@ -107,9 +107,9 @@ microphones:
 
 audio_device:
   interface: "Focusrite Scarlett 18i8"
-  preferred_host_api: "Windows WDM-KS"
-  input_device_name_contains: "Analogue 1 + 2"
-  output_device_name_contains: "Speakers"
+  preferred_host_api: "Core Audio"
+  input_device_name_contains: "Scarlett"
+  output_device_name_contains: "Scarlett"
   input_device_index_override: null
   output_device_index_override: null
   sample_rate_hz: 48000
@@ -117,8 +117,6 @@ audio_device:
   stream_dtype: auto
   stream_dtype_candidates:
     - float32
-    - int32
-    - int16
   storage_dtype: float32
   open_input_channel_count: 4
   open_output_channel_count: 4
@@ -187,27 +185,12 @@ sweep:
   dtype: float32
   preserve_raw_without_normalization: true
 
-ble:
-  enabled: true
-  required_for_trial: false
-  device_name: Tiresias_DK
-  characteristic_uuid: "12345678-1234-5678-1234-56789abcdef1"
-  payload_format: legacy_quaternion_f32_le
-  expected_payload_bytes: 16
-  scan_timeout_s: 5.0
-  connect_timeout_s: 10.0
-  reconnect_attempts: 3
-  reconnect_backoff_s: 1.0
-  simulated_rate_hz: 100.0
-  note: "Current firmware BLE packets do not include sequence numbers or device timestamps."
-
 qc:
   warning_peak_dbfs: -3.0
   failure_peak_dbfs: -0.1
   clipping_threshold_linear: 0.999
   min_reference_snr_db: 40.0
   min_ir_snr_db: 30.0
-  max_ble_gap_ms: 100.0
   min_loopback_correlation: 0.8
   fail_on_xrun: true
   min_reference_rms_dbfs: -60.0
@@ -227,10 +210,6 @@ qc:
 campaign:
   stabilization_s: 5.0
   dry_run_stabilization_s: 0.05
-  minimum_yaw_packets: 100
-  dry_run_minimum_yaw_packets: 3
-  max_yaw_standard_deviation_deg: 0.5
-  max_yaw_angle_error_deg: 2.0
   stale_lock_timeout_s: 600.0
   max_operator_retries_per_trial: 3
 

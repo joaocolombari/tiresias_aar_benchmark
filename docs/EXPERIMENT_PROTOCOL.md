@@ -81,17 +81,14 @@ responses. Each sweep activates one speaker only. Scarlett output 3 carries an
 exact copy of the active speaker drive and returns to the configured reference
 input stream channel as the electrical reference.
 
-On Windows, PortAudio may expose the same Scarlett interface as one input-only
-device and one output-only device under `Windows WDM-KS`. This is acceptable as
-long as the application opens one stream with
-`device=(input_device_index, output_device_index)` and `channels=(4, 4)`.
+The default acquisition machine is macOS using Core Audio and the Scarlett as a
+full-duplex device. The experiment does not require Tiresias BLE telemetry.
 
 Raw acquisition must preserve:
 
 - Earthworks L;
 - Earthworks R;
 - electrical reference;
-- BLE notifications from Tiresias when available;
 - callback timing/status;
 - operator metadata and QC decision.
 

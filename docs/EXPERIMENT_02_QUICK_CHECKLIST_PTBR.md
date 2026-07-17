@@ -43,7 +43,6 @@ Confirmar no resultado:
 - [ ] Nenhum canal clipa.
 - [ ] IR L/R tem chegada direta plausivel.
 - [ ] Rep01 e rep02 sao semelhantes.
-- [ ] BLE registra payloads durante o sweep.
 
 ## Campanha oficial
 
@@ -63,5 +62,4 @@ Para cada angulo:
 - [ ] 0 e 360 preservados separadamente.
 - [ ] Checksums gerados.
 - [ ] `qc_summary.csv` completo.
-- [ ] `ble_summary.csv` completo.
 - [ ] Sessao inteira copiada para backup fora do Git.
