@@ -1,9 +1,9 @@
 {
-  "mae_deg": 92.12268727557412,
-  "rmse_deg": 105.55606211153024,
-  "bias_deg": -2.6311463932316626,
-  "max_abs_error_deg": 174.786047391177,
-  "global_samples_used": 11763,
+  "mae_deg": 85.71351732999133,
+  "rmse_deg": 101.08366771974474,
+  "bias_deg": -4.297467504610674,
+  "max_abs_error_deg": 175.00226271436713,
+  "global_samples_used": 11673,
   "closure_samples_excluded": 327,
   "reference_sequences": {
     "ascending": [
@@ -791,48 +791,48 @@
     ]
   },
   "closure_errors_deg": {
-    "ascending": 30.241431709945942
+    "descending": 34.095895406324104
   },
-  "drift_deg_per_minute": -29.024774010690443,
-  "update_rate_hz": 40.85147622957583,
-  "interval_p95_ms": 37.588499999999996,
-  "lost_packets": 12053,
-  "packet_loss_percent": 50.0,
+  "drift_deg_per_minute": 33.08029010838805,
+  "update_rate_hz": 40.511480156318186,
+  "interval_p95_ms": 44.000479999999996,
+  "lost_packets": 12081,
+  "packet_loss_percent": 50.24538346364997,
   "drift_before_deg_per_minute": 2.983975622416312,
   "drift_after_deg_per_minute": 3.5435865400279782,
   "orientation_sign_candidates": {
     "normal": {
-      "mae_deg": 92.12268727557412,
-      "rmse_deg": 105.55606211153024,
-      "bias_deg": -2.6311463932316626,
-      "max_abs_error_deg": 174.786047391177,
-      "samples": 11763
+      "mae_deg": 85.71351732999133,
+      "rmse_deg": 101.08366771974474,
+      "bias_deg": -4.297467504610674,
+      "max_abs_error_deg": 175.00226271436713,
+      "samples": 11673
     },
     "inverted": {
-      "mae_deg": 17.41816075630502,
-      "rmse_deg": 19.200223588378776,
-      "bias_deg": -17.41816075630502,
-      "max_abs_error_deg": 30.552291014100604,
-      "samples": 11763
+      "mae_deg": 16.811073573090006,
+      "rmse_deg": 19.553409537917478,
+      "bias_deg": -16.811073573090006,
+      "max_abs_error_deg": 33.64429109419717,
+      "samples": 11673
     }
   },
   "posthoc_drift_correction": {
     "model": {
       "yaw_sign": -1.0,
       "sign_label": "inverted",
-      "slope_deg_per_minute": -2.4439095268638207,
-      "intercept_deg": -2.917782444196392,
-      "fit_samples": 11763,
-      "fit_duration_s": 688.7877383,
+      "slope_deg_per_minute": -2.891816980885768,
+      "intercept_deg": 0.017924548324511947,
+      "fit_samples": 11673,
+      "fit_duration_s": 701.9286559,
       "uses_reference_angles": true,
       "interpretation": "post-hoc supervised correction for analysis only"
     },
     "metrics": {
-      "mae_deg": 0.3607727898650064,
-      "rmse_deg": 0.47587428563122325,
-      "bias_deg": -1.643013041968437e-15,
-      "max_abs_error_deg": 2.0425257927404914,
-      "samples": 11763
+      "mae_deg": 0.24948234510998274,
+      "rmse_deg": 0.33019094924682807,
+      "bias_deg": 9.61025333006122e-15,
+      "max_abs_error_deg": 0.8262314483285991,
+      "samples": 11673
     }
   }
 }

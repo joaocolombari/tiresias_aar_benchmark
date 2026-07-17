@@ -1,0 +1,126 @@
+{
+  "input_groups": [
+    {
+      "group_key": "ascending::segmented_ascending_20260717_121716.csv",
+      "sign_label": "inverted",
+      "slope_deg_per_minute": -2.4439095268638207,
+      "intercept_deg": -2.917782444196392,
+      "fit_samples": 11763,
+      "fit_duration_s": 688.7877383
+    },
+    {
+      "group_key": "descending::segmented_descending_20260717_141821.csv",
+      "sign_label": "inverted",
+      "slope_deg_per_minute": -2.891816980885768,
+      "intercept_deg": 0.017924548324511947,
+      "fit_samples": 11673,
+      "fit_duration_s": 701.9286559
+    },
+    {
+      "group_key": "randomized::segmented_randomized_20260717_143439.csv",
+      "sign_label": "inverted",
+      "slope_deg_per_minute": -3.231305344987126,
+      "intercept_deg": -1.7841167262556872,
+      "fit_samples": 11691,
+      "fit_duration_s": 919.4865435
+    }
+  ],
+  "samples": {
+    "global_samples_used": 35127,
+    "closure_samples_excluded": 981
+  },
+  "sign_corrected": {
+    "mae_deg": 20.42673460586474,
+    "rmse_deg": 23.74260808869271,
+    "bias_deg": -20.42673460586474,
+    "max_abs_error_deg": 51.47841026423123
+  },
+  "drift_corrected": {
+    "mae_deg": 0.35575617814228605,
+    "rmse_deg": 0.47330343033925804,
+    "bias_deg": 2.259043263862214e-15,
+    "max_abs_error_deg": 2.0425257927404914
+  },
+  "closure_errors_deg": {
+    "ascending": {
+      "sign_corrected_deg": -30.241431709945914,
+      "drift_corrected_deg": -1.7038535360253206,
+      "group_key": "ascending::segmented_ascending_20260717_121716.csv"
+    },
+    "descending": {
+      "sign_corrected_deg": -34.095895406324075,
+      "drift_corrected_deg": 0.4180769988941506,
+      "group_key": "descending::segmented_descending_20260717_141821.csv"
+    },
+    "randomized": {
+      "sign_corrected_deg": -11.683157661075654,
+      "drift_corrected_deg": 0.4671354195132267,
+      "group_key": "randomized::segmented_randomized_20260717_143439.csv"
+    }
+  },
+  "ble": [
+    {
+      "sample_count": 29257,
+      "interval_count": 29256,
+      "effective_rate_hz": 40.81164355889419,
+      "interval_mean_ms": 24.502811276319388,
+      "interval_median_ms": 22.6174,
+      "interval_p95_ms": 37.522774999999996,
+      "interval_p99_ms": 52.520765000000004,
+      "jitter_abs_from_median_p95_ms": 17.55885,
+      "jitter_abs_from_median_p99_ms": 29.903365000000004,
+      "seq_count": 29257,
+      "seq_delta_mode": 2,
+      "seq_delta_min": 2,
+      "seq_delta_max": 2,
+      "packet_loss_percent_assuming_unit_seq": 50.0,
+      "packet_loss_percent_relative_to_modal_step": 0.0,
+      "seq_semantics_note": "packet loss relative to modal step is preferred when seq_delta_mode is not 1",
+      "run_type": "ascending",
+      "source_csv": "experiments/exp01_orientation_characterization/raw/exp01_guided_ascending_20260717_121716.csv",
+      "raw_file_found": true
+    },
+    {
+      "sample_count": 30092,
+      "interval_count": 30091,
+      "effective_rate_hz": 40.655523033064675,
+      "interval_mean_ms": 24.59690407098468,
+      "interval_median_ms": 22.6053,
+      "interval_p95_ms": 43.8989,
+      "interval_p99_ms": 62.40094999999975,
+      "jitter_abs_from_median_p95_ms": 22.3612,
+      "jitter_abs_from_median_p99_ms": 39.79564999999975,
+      "seq_count": 30092,
+      "seq_delta_mode": 2,
+      "seq_delta_min": 2,
+      "seq_delta_max": 8,
+      "packet_loss_percent_assuming_unit_seq": 50.09784411276949,
+      "packet_loss_percent_relative_to_modal_step": 0.1956882255389718,
+      "seq_semantics_note": "packet loss relative to modal step is preferred when seq_delta_mode is not 1",
+      "run_type": "descending",
+      "source_csv": "experiments/exp01_orientation_characterization/raw/exp01_guided_descending_20260717_141821.csv",
+      "raw_file_found": true
+    },
+    {
+      "sample_count": 39496,
+      "interval_count": 39495,
+      "effective_rate_hz": 40.70170708435872,
+      "interval_mean_ms": 24.56899407013546,
+      "interval_median_ms": 22.6161,
+      "interval_p95_ms": 40.673429999999904,
+      "interval_p99_ms": 63.356567999999726,
+      "jitter_abs_from_median_p95_ms": 22.2806,
+      "jitter_abs_from_median_p99_ms": 40.74046799999973,
+      "seq_count": 39496,
+      "seq_delta_mode": 2,
+      "seq_delta_min": 2,
+      "seq_delta_max": 6,
+      "packet_loss_percent_assuming_unit_seq": 50.06574455710926,
+      "packet_loss_percent_relative_to_modal_step": 0.1314891142185248,
+      "seq_semantics_note": "packet loss relative to modal step is preferred when seq_delta_mode is not 1",
+      "run_type": "randomized",
+      "source_csv": "experiments/exp01_orientation_characterization/raw/exp01_guided_randomized_20260717_143439.csv",
+      "raw_file_found": true
+    }
+  ]
+}
