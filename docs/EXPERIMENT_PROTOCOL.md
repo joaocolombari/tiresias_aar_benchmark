@@ -54,10 +54,51 @@ Closure error is reported separately:
 
 ## Experiment 2: Binaural Response Measurement
 
-Record exponential sweeps for each head angle, source and ear. Use electrical
-playback-reference channels when available. Deconvolve with regularization,
-trim around the direct-response peak and store one response per source, ear and
-head angle.
+Measure native BRIRs on the rotating mannequin rig using the Scarlett 18i8,
+two Earthworks microphones and two Neumann monitors. REW is not used.
+
+The physical campaign uses nominal platform positions:
+
+`0, 10, 20, ..., 350, 360 deg`.
+
+The 360 deg row is a closure measurement. It wraps to 0 deg for angular
+comparison, but it remains a separate trial identity and separate file path.
+
+For each angle, measure:
+
+- speaker A, repetition 1;
+- speaker B, repetition 1;
+- speaker A, repetition 2;
+- speaker B, repetition 2.
+
+To reduce order bias, odd angle indices invert speaker order:
+
+- even angle index: `A1, B1, A2, B2`;
+- odd angle index: `B1, A1, B2, A2`.
+
+The complete plan contains 37 angle blocks, 148 sweeps and 296 expected impulse
+responses. Each sweep activates one speaker only. Scarlett output 3 carries an
+exact copy of the active speaker drive and returns to Scarlett input 5 as the
+electrical reference.
+
+Raw acquisition must preserve:
+
+- Earthworks L;
+- Earthworks R;
+- electrical reference;
+- BLE notifications from Tiresias when available;
+- callback timing/status;
+- operator metadata and QC decision.
+
+The raw audio path is float32 and unnormalized. The electrical reference is
+used for deconvolution:
+
+`H_ear[k] = Y_ear[k] * conj(R[k]) / (|R[k]|^2 + lambda[k])`.
+
+Left and right IRs must share the same reference, origin, window and sample
+rate. Do not peak-align, normalize, resample or time-shift the two ears
+independently, because that would destroy ITD. Analytical ITD/ILD rendering is
+bypassed when these measured BRIRs are used in later benchmarks.
 
 ## Experiment 3: Sigma Sensitivity
 

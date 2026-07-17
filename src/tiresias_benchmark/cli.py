@@ -32,6 +32,8 @@ def _parse_scalar(text: str):
         return float("inf")
     if text.lower() in {"true", "false"}:
         return text.lower() == "true"
+    if text.lower() in {"null", "none", "~"}:
+        return None
     if text.startswith("[") and text.endswith("]"):
         inner = text[1:-1].strip()
         if not inner:
@@ -268,6 +270,79 @@ def cmd_figures_generate(args: argparse.Namespace) -> None:
     print(json.dumps({key: str(value) for key, value in outputs.__dict__.items()}, indent=2))
 
 
+def cmd_exp02_audio_list_devices(args: argparse.Namespace) -> None:  # noqa: ARG001
+    audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    try:
+        result = audio.list_audio_devices()
+    except RuntimeError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps(result, indent=2))
+
+
+def cmd_exp02_audio_preflight(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    try:
+        result = audio.preflight_audio(
+            config,
+            duration_s=args.duration_s,
+            open_stream=not args.no_open_stream,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    _write_optional_json(args.output, result)
+    print(json.dumps(result, indent=2))
+
+
+def cmd_exp02_channel_probe(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    try:
+        result = audio.record_probe(
+            config=config,
+            speaker=args.speaker,
+            session_id=args.session_id,
+            output_root=args.output_root,
+            attempt=args.attempt,
+            armed=args.armed,
+            simulate=args.simulate,
+            overwrite=args.overwrite,
+        )
+    except (FileExistsError, RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps(result.as_dict(), indent=2))
+
+
+def cmd_exp02_record_test_sweep(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    try:
+        result = audio.record_test_sweep(
+            config=config,
+            speaker=args.speaker,
+            angle_deg=args.angle,
+            repetition=args.repetition,
+            session_id=args.session_id,
+            output_root=args.output_root,
+            attempt=args.attempt,
+            armed=args.armed,
+            simulate=args.simulate,
+            overwrite=args.overwrite,
+        )
+    except (FileExistsError, RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps(result.as_dict(), indent=2))
+
+
+def _write_optional_json(path: str | Path | None, data: dict) -> None:
+    if not path:
+        return
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w") as file:
+        json.dump(data, file, indent=2)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tiresias-benchmark")
     sub = parser.add_subparsers(required=True)
@@ -334,6 +409,40 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-missing-runs", action="store_true")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_figures_generate)
+
+    p = sub.add_parser("exp02-audio-list-devices")
+    p.set_defaults(func=cmd_exp02_audio_list_devices)
+
+    p = sub.add_parser("exp02-audio-preflight")
+    p.add_argument("--config", required=True)
+    p.add_argument("--duration-s", type=float, default=0.25)
+    p.add_argument("--no-open-stream", action="store_true")
+    p.add_argument("--output")
+    p.set_defaults(func=cmd_exp02_audio_preflight)
+
+    p = sub.add_parser("exp02-channel-probe")
+    p.add_argument("--config", required=True)
+    p.add_argument("--speaker", required=True, choices=["A", "B"])
+    p.add_argument("--session-id", default="exp02_probe")
+    p.add_argument("--output-root")
+    p.add_argument("--attempt", type=int, default=1)
+    p.add_argument("--armed", action="store_true")
+    p.add_argument("--simulate", action="store_true")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_exp02_channel_probe)
+
+    p = sub.add_parser("exp02-record-test-sweep")
+    p.add_argument("--config", required=True)
+    p.add_argument("--speaker", required=True, choices=["A", "B"])
+    p.add_argument("--angle", type=int, default=0)
+    p.add_argument("--repetition", type=int, choices=[1, 2], default=1)
+    p.add_argument("--session-id", default="exp02_test")
+    p.add_argument("--output-root")
+    p.add_argument("--attempt", type=int, default=1)
+    p.add_argument("--armed", action="store_true")
+    p.add_argument("--simulate", action="store_true")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_exp02_record_test_sweep)
     return parser
 
 

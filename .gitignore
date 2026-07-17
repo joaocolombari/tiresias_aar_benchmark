@@ -9,6 +9,7 @@ venv/
 dist/
 build/
 *.egg-info/
+brian_exp_2/
 
 # Experimental data and generated artifacts
 !experiments/**/.gitkeep

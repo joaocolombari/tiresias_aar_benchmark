@@ -1,4 +1,5 @@
-raise SystemExit(
-    "Multichannel audio capture is hardware-specific. Use your DAW or add a "
-    "sounddevice implementation after confirming Scarlett channel routing."
-)
+from tiresias_benchmark.cli import main
+
+
+if __name__ == "__main__":
+    main(["exp02-record-test-sweep", *(__import__("sys").argv[1:])])

@@ -39,6 +39,62 @@ For Experiment 1 segmented orientation rows also use:
 - `right_ir_path`: path to right-ear measured response WAV.
 - `sample_rate_hz`: response sample rate.
 
+## Experiment 2 Plan CSV
+
+- `trial_id`: stable trial name, e.g. `brir_theta_000_spk_A_rep01`.
+- `condition_id`: condition identity before attempt numbering; currently equal
+  to `trial_id`.
+- `angle_sequence_index`: index from 0 through 36 in the physical campaign.
+- `angle_nominal_deg`: physical platform label, preserving 360.
+- `angle_wrapped_deg`: `angle_nominal_deg mod 360`; 360 maps to 0.
+- `closure_measurement`: true only for nominal 360 rows.
+- `speaker`: `A` or `B`.
+- `repetition`: independent repetition number, 1 or 2.
+- `expected_output_channel`: physical Scarlett output for the active speaker.
+- `expected_reference_output_channel`: physical Scarlett output copied to the
+  electrical reference input.
+- `expected_input_channels`: logical raw input mapping for ear L, ear R and
+  reference.
+- `status`: campaign state; generated plans start as `planned`.
+- `attempt_number`: planned first attempt number.
+- `notes`: operator or campaign notes.
+
+## Experiment 2 Raw Trial Files
+
+The canonical raw audio file per attempt is `raw_input.wav`:
+
+- WAV IEEE float32;
+- three logical channels in fixed order `[ear_L, ear_R, electrical_reference]`;
+- native stream sample rate, normally 48 kHz;
+- no normalization, limiter, compression, independent L/R alignment or
+  destructive filtering;
+- includes pre-silence, sweep, post-silence and any documented zero padding.
+
+`metadata.json` records the nominal physical angle, wrapped angle, speaker,
+repetition, attempt, stream configuration, channel mapping, stimulus hash,
+operator confirmations and QC decision.
+
+`callback_timeline.csv` records one row per audio callback/block. At minimum it
+should contain absolute frame index, frames in block, PortAudio status flags and
+available host/device timing fields.
+
+`ble_notifications.csv` records one row per BLE notification:
+
+- `host_time_ns`;
+- `sender`;
+- `characteristic_uuid`;
+- `payload_len`;
+- `payload_hex`;
+- `decode_status`;
+- `qw`, `qx`, `qy`, `qz`;
+- `quaternion_norm`;
+- `estimated_audio_frame`;
+- `mapping_uncertainty_frames`.
+
+The current firmware BLE payload does not include sequence number or device
+timestamp, so Experiment 2 must not infer packet loss or device-clock latency
+from fields that are not present.
+
 ## Benchmark Result Tables
 
 All angular fields use `_deg`, delays use `_ms`, sample rates use `_hz`, linear
