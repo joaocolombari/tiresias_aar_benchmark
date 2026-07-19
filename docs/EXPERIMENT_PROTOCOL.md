@@ -57,6 +57,14 @@ Closure error is reported separately:
 Measure native BRIRs on the rotating mannequin rig using the Scarlett 18i8,
 two Earthworks microphones and two Neumann monitors. REW is not used.
 
+The measured geometry is:
+
+- physical zero: mannequin facing the frontal reference;
+- positive rotation: clockwise;
+- Neumann A: -30 deg azimuth;
+- Neumann B: +30 deg azimuth;
+- distance: 1.0 m from the mannequin nose to each Neumann.
+
 The physical campaign uses nominal platform positions:
 
 `0, 10, 20, ..., 350, 360 deg`.

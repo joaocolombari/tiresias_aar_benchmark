@@ -1,0 +1,31 @@
+{
+  "passed_basic_qc": false,
+  "fail_reasons": [
+    "low_reference_correlation"
+  ],
+  "peak_dbfs": {
+    "ear_L": -18.99607235969389,
+    "ear_R": -20.280303031501358,
+    "reference": -19.28392627184653
+  },
+  "rms_dbfs": {
+    "ear_L": -36.059870299642746,
+    "ear_R": -36.39093702085293,
+    "reference": -24.330573458361123
+  },
+  "clipping": {
+    "ear_L": false,
+    "ear_R": false,
+    "reference": false
+  },
+  "reference_correlation": -0.005095846824464736,
+  "frames": 406144,
+  "raw_shape": [
+    406144,
+    3
+  ],
+  "playback_shape": [
+    406144,
+    4
+  ]
+}

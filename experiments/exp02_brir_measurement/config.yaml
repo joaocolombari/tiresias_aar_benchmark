@@ -15,10 +15,14 @@ geometry:
   closure_of_angle_deg: 0
   speaker_reference:
     A:
-      azimuth_deg: -45
+      azimuth_deg: -30
+      distance_m: 1.0
+      distance_reference: "mannequin nose"
       name: "Neumann A"
     B:
-      azimuth_deg: 45
+      azimuth_deg: 30
+      distance_m: 1.0
+      distance_reference: "mannequin nose"
       name: "Neumann B"
 
 planning:

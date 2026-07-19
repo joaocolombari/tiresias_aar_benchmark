@@ -4,7 +4,15 @@ import json
 from pathlib import Path
 
 from tiresias_benchmark.cli import load_yaml
-from tiresias_benchmark.experiments.experiment_02 import build_trial_plan, run, write_plan_csv
+import numpy as np
+
+from tiresias_benchmark.experiments.experiment_02 import (
+    build_trial_plan,
+    deconvolve_stereo_brir,
+    predict_recording_from_ir,
+    run,
+    write_plan_csv,
+)
 from tiresias_benchmark.experiments.experiment_02_audio import record_probe
 
 
@@ -41,6 +49,16 @@ class Experiment02PlanTests(unittest.TestCase):
 
         self.assertEqual(first_angle, [("A", 1), ("B", 1), ("A", 2), ("B", 2)])
         self.assertEqual(second_angle, [("B", 1), ("A", 1), ("B", 2), ("A", 2)])
+
+    def test_default_geometry_matches_measured_rig(self):
+        config = load_yaml(CONFIG_PATH)
+        speakers = config["geometry"]["speaker_reference"]
+
+        self.assertEqual(config["geometry"]["positive_rotation_direction"], "clockwise")
+        self.assertEqual(speakers["A"]["azimuth_deg"], -30)
+        self.assertEqual(speakers["B"]["azimuth_deg"], 30)
+        self.assertEqual(speakers["A"]["distance_m"], 1.0)
+        self.assertEqual(speakers["B"]["distance_m"], 1.0)
 
     def test_run_writes_plan_csv_without_merging_360(self):
         config = load_yaml(CONFIG_PATH)
@@ -86,6 +104,46 @@ class Experiment02PlanTests(unittest.TestCase):
         self.assertEqual(metadata["trial_id"], "brir_theta_000_spk_A_rep01")
         self.assertEqual(metadata["raw_channel_order"], ["ear_L", "ear_R", "electrical_reference"])
         self.assertTrue(qc["passed_basic_qc"])
+
+    def test_stereo_deconvolution_uses_common_window_and_preserves_itd(self):
+        fs = 48_000
+        reference = np.zeros(256, dtype=np.float32)
+        reference[0] = 1.0
+        ear_l = np.zeros(512, dtype=np.float32)
+        ear_r = np.zeros(512, dtype=np.float32)
+        ear_l[120] = 1.0
+        ear_r[132] = 0.5
+
+        result = deconvolve_stereo_brir(
+            ear_l=ear_l,
+            ear_r=ear_r,
+            reference=reference,
+            sample_rate_hz=fs,
+            response_length_samples=128,
+            regularization_fraction=1e-12,
+            pre_samples=8,
+        )
+
+        self.assertEqual(result.window_start_sample, 112)
+        self.assertEqual(result.left_peak_sample_windowed, 8)
+        self.assertEqual(result.right_peak_sample_windowed, 20)
+        self.assertAlmostEqual(result.itd_ms, 1000.0 * 12 / fs)
+
+    def test_predict_recording_from_windowed_ir_restores_window_offset(self):
+        reference = np.zeros(16, dtype=np.float32)
+        reference[2] = 1.0
+        windowed_ir = np.zeros(8, dtype=np.float32)
+        windowed_ir[3] = 0.5
+
+        predicted = predict_recording_from_ir(
+            reference=reference,
+            windowed_ir=windowed_ir,
+            window_start_sample=10,
+            output_length=32,
+        )
+
+        self.assertAlmostEqual(float(predicted[15]), 0.5)
+        self.assertEqual(np.count_nonzero(predicted), 1)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ import hashlib
 import json
 from math import ceil
 from pathlib import Path
+import shutil
 import struct
 import threading
 import time
@@ -552,6 +553,142 @@ def record_probe(
     )
 
 
+def record_output_channel_probe(
+    config: dict,
+    output_index: int,
+    session_id: str,
+    output_root: str | Path | None = None,
+    attempt: int = 1,
+    armed: bool = False,
+    simulate: bool = False,
+    overwrite: bool = False,
+) -> TrialAudioResult:
+    """Emit a probe tone on exactly one stream output and record all stream inputs.
+
+    This is a routing diagnostic, not a scientific BRIR trial. It deliberately
+    bypasses speaker/loopback role mapping so physical channel assignments can
+    be verified one channel at a time.
+    """
+    if not simulate and not armed:
+        raise RuntimeError("Refusing to emit audio without --armed. Use --simulate for dry runs.")
+
+    audio = config["audio_device"]
+    output_count = int(audio["open_output_channel_count"])
+    if output_index < 0 or output_index >= output_count:
+        raise ValueError(f"output_index must be in [0, {output_count - 1}]")
+
+    probe = audio["probe_signal"]
+    sample_rate = int(audio["sample_rate_hz"])
+    tone = _probe_tone(
+        sample_rate_hz=sample_rate,
+        frequency_hz=float(probe["frequency_hz"]),
+        level_dbfs=float(probe["level_dbfs"]),
+        duration_s=float(probe["duration_s"]),
+        fade_in_s=float(probe["fade_in_s"]),
+        fade_out_s=float(probe["fade_out_s"]),
+    )
+    signal = sweep_with_silence(
+        tone,
+        sample_rate,
+        pre_silence_s=float(probe["pre_silence_s"]),
+        post_silence_s=float(probe["post_silence_s"]),
+    )
+    playback = np.zeros((len(signal), output_count), dtype=np.float32)
+    playback[:, output_index] = signal.astype(np.float32, copy=False)
+
+    input_count = int(audio["open_input_channel_count"])
+    block_size = int(audio["block_size_frames"])
+    raw = np.zeros((len(playback), input_count), dtype=np.float32)
+    max_blocks = ceil(len(playback) / block_size) + 8
+    timeline = _empty_timeline(max_blocks)
+
+    attempt_dir = _output_probe_attempt_directory(
+        config=config,
+        session_id=session_id,
+        output_index=output_index,
+        attempt=attempt,
+        output_root=output_root,
+    )
+    if attempt_dir.exists() and not overwrite:
+        raise FileExistsError(
+            f"refusing to overwrite existing output probe directory: {attempt_dir}. "
+            "Use --overwrite to replace this pilot attempt or --attempt N to keep a new take."
+        )
+
+    if simulate:
+        _simulate_capture_all_inputs(playback, raw, timeline, sample_rate, block_size, output_index)
+        selection: AudioDevicePair | None = None
+        stream_dtype = "simulated_float32"
+    else:
+        selection = select_audio_device_pair(config)
+        stream_dtype = _select_stream_dtype_for_capture(config)
+        _capture_full_duplex_all_inputs(
+            config=config,
+            playback=playback,
+            raw=raw,
+            timeline=timeline,
+            selection=selection,
+            stream_dtype=stream_dtype,
+        )
+
+    if attempt_dir.exists():
+        shutil.rmtree(attempt_dir)
+    attempt_dir.mkdir(parents=True, exist_ok=True)
+
+    raw_input_wav = attempt_dir / "raw_input_all_channels.wav"
+    playback_output_wav = attempt_dir / "playback_output.wav"
+    metadata_json = attempt_dir / "metadata.json"
+    callback_timeline_csv = attempt_dir / "callback_timeline.csv"
+    qc_json = attempt_dir / "qc.json"
+
+    _write_wav_float32(raw_input_wav, raw, sample_rate)
+    _write_wav_float32(playback_output_wav, playback, sample_rate)
+    _write_timeline_csv(callback_timeline_csv, timeline)
+    qc = _compute_channel_probe_qc(raw, playback)
+    qc_json.write_text(json.dumps(qc, indent=2))
+    metadata_json.write_text(
+        json.dumps(
+            {
+                "experiment_id": config.get("experiment_id", "exp02_brir_measurement"),
+                "session_id": session_id,
+                "signal_kind": "output_channel_probe",
+                "output_index": output_index,
+                "output_physical_number_assuming_one_based": output_index + 1,
+                "attempt": attempt,
+                "simulated": simulate,
+                "stream_dtype": stream_dtype,
+                "storage_dtype": _storage_dtype(config),
+                "sample_rate_hz": sample_rate,
+                "block_size_frames": block_size,
+                "raw_channel_order": [
+                    f"stream_input_index_{index}" for index in range(input_count)
+                ],
+                "audio_selection": asdict(selection) if selection else None,
+                "audio_device_config": audio,
+                "playback_sha256": _array_sha256(playback),
+                "raw_sha256": _array_sha256(raw),
+                "files": {
+                    "raw_input_wav": str(raw_input_wav),
+                    "playback_output_wav": str(playback_output_wav),
+                    "callback_timeline_csv": str(callback_timeline_csv),
+                    "qc_json": str(qc_json),
+                },
+                "created_host_time_ns": time.time_ns(),
+            },
+            indent=2,
+        )
+    )
+
+    return TrialAudioResult(
+        attempt_dir=attempt_dir,
+        raw_input_wav=raw_input_wav,
+        playback_output_wav=playback_output_wav,
+        metadata_json=metadata_json,
+        callback_timeline_csv=callback_timeline_csv,
+        qc_json=qc_json,
+    )
+
+
 def record_test_sweep(
     config: dict,
     speaker: str,
@@ -618,6 +755,22 @@ def _record_signal(
     if not simulate and not armed:
         raise RuntimeError("Refusing to emit audio without --armed. Use --simulate for dry runs.")
 
+    attempt_dir = _attempt_directory(
+        config=config,
+        session_id=session_id,
+        subdirectory=subdirectory,
+        speaker=speaker,
+        angle_deg=angle_deg,
+        repetition=repetition,
+        attempt=attempt,
+        output_root=output_root,
+    )
+    if attempt_dir.exists() and not overwrite:
+        raise FileExistsError(
+            f"refusing to overwrite existing attempt directory: {attempt_dir}. "
+            "Use --overwrite to replace this pilot attempt or --attempt N to keep a new take."
+        )
+
     audio = config["audio_device"]
     sample_rate = int(audio["sample_rate_hz"])
     block_size = int(audio["block_size_frames"])
@@ -646,18 +799,8 @@ def _record_signal(
             stream_dtype=stream_dtype,
         )
 
-    attempt_dir = _attempt_directory(
-        config=config,
-        session_id=session_id,
-        subdirectory=subdirectory,
-        speaker=speaker,
-        angle_deg=angle_deg,
-        repetition=repetition,
-        attempt=attempt,
-        output_root=output_root,
-    )
-    if attempt_dir.exists() and not overwrite:
-        raise FileExistsError(f"refusing to overwrite existing attempt directory: {attempt_dir}")
+    if attempt_dir.exists():
+        shutil.rmtree(attempt_dir)
     attempt_dir.mkdir(parents=True, exist_ok=True)
 
     raw_input_wav = attempt_dir / "raw_input.wav"
@@ -776,6 +919,71 @@ def _capture_full_duplex(
         raise error[0]
 
 
+def _capture_full_duplex_all_inputs(
+    config: dict,
+    playback: np.ndarray,
+    raw: np.ndarray,
+    timeline: dict[str, np.ndarray],
+    selection: AudioDevicePair,
+    stream_dtype: str,
+) -> None:
+    sd = _require_sounddevice()
+    audio = config["audio_device"]
+    sample_rate = int(audio["sample_rate_hz"])
+    block_size = int(audio["block_size_frames"])
+    dtype = stream_dtype
+
+    done = threading.Event()
+    error: list[BaseException] = []
+    cursor = 0
+    block_index = 0
+
+    def callback(indata, outdata, frames, callback_time, status):
+        nonlocal cursor, block_index
+        try:
+            outdata.fill(0.0)
+            start = cursor
+            stop = min(start + frames, len(playback))
+            valid = stop - start
+            if valid > 0:
+                _copy_float_playback_to_stream_out(outdata[:valid, :], playback[start:stop, :])
+                raw[start:stop, :] = _stream_input_to_float32(indata[:valid, : raw.shape[1]])
+            if block_index < len(timeline["frame_start"]):
+                timeline["frame_start"][block_index] = start
+                timeline["frames"][block_index] = frames
+                timeline["status_flags"][block_index] = _callback_status_flags(status)
+                timeline["input_adc_time"][block_index] = callback_time.inputBufferAdcTime
+                timeline["current_time"][block_index] = callback_time.currentTime
+                timeline["output_dac_time"][block_index] = callback_time.outputBufferDacTime
+                timeline["perf_counter_ns"][block_index] = time.perf_counter_ns()
+                timeline["valid"][block_index] = True
+            cursor = stop
+            block_index += 1
+            if cursor >= len(playback):
+                done.set()
+                raise sd.CallbackStop()
+        except BaseException as exc:  # pragma: no cover - exercised only by hardware callback
+            if isinstance(exc, sd.CallbackStop):
+                raise
+            error.append(exc)
+            done.set()
+            raise
+
+    with sd.Stream(
+        device=(selection.input_device_index, selection.output_device_index),
+        samplerate=sample_rate,
+        blocksize=block_size,
+        dtype=dtype,
+        channels=(selection.requested_input_channels, selection.requested_output_channels),
+        callback=callback,
+    ):
+        timeout_s = len(playback) / sample_rate + 5.0
+        if not done.wait(timeout_s):
+            raise TimeoutError("audio channel probe did not finish before timeout")
+    if error:
+        raise error[0]
+
+
 def _simulate_capture(
     playback: np.ndarray,
     raw: np.ndarray,
@@ -791,6 +999,31 @@ def _simulate_capture(
     raw[:, 2] = reference + _noise(len(reference), 2e-5)
     raw[:, 0] = _delayed(reference, delay_l, 0.18) + _noise(len(reference), 1e-4)
     raw[:, 1] = _delayed(reference, delay_r, 0.16) + _noise(len(reference), 1e-4)
+    for block_index, start in enumerate(range(0, len(playback), block_size)):
+        frames = min(block_size, len(playback) - start)
+        timeline["frame_start"][block_index] = start
+        timeline["frames"][block_index] = frames
+        timeline["status_flags"][block_index] = 0
+        timeline["input_adc_time"][block_index] = start / sample_rate
+        timeline["current_time"][block_index] = start / sample_rate
+        timeline["output_dac_time"][block_index] = start / sample_rate
+        timeline["perf_counter_ns"][block_index] = time.perf_counter_ns()
+        timeline["valid"][block_index] = True
+
+
+def _simulate_capture_all_inputs(
+    playback: np.ndarray,
+    raw: np.ndarray,
+    timeline: dict[str, np.ndarray],
+    sample_rate: int,
+    block_size: int,
+    output_index: int,
+) -> None:
+    reference = playback[:, output_index]
+    for input_index in range(raw.shape[1]):
+        delay = int(round((0.001 + 0.0004 * input_index) * sample_rate))
+        gain = 0.8 / float(input_index + 1)
+        raw[:, input_index] = _delayed(reference, delay, gain) + _noise(len(reference), 2e-5)
     for block_index, start in enumerate(range(0, len(playback), block_size)):
         frames = min(block_size, len(playback) - start)
         timeline["frame_start"][block_index] = start
@@ -853,6 +1086,23 @@ def _attempt_directory(
     return root / session_id / subdirectory / trial_id / f"attempt_{attempt:02d}"
 
 
+def _output_probe_attempt_directory(
+    config: dict,
+    session_id: str,
+    output_index: int,
+    attempt: int,
+    output_root: str | Path | None,
+) -> Path:
+    root = Path(output_root or config["outputs"]["sessions_root"])
+    return (
+        root
+        / session_id
+        / "routing_probes"
+        / f"output_index_{output_index:02d}"
+        / f"attempt_{attempt:02d}"
+    )
+
+
 def _compute_qc(raw: np.ndarray, playback: np.ndarray, channels: dict, config: dict) -> dict:
     qc_config = config.get("qc", {})
     reference_output = playback[:, int(channels["reference_output_index"])]
@@ -888,6 +1138,27 @@ def _compute_qc(raw: np.ndarray, playback: np.ndarray, channels: dict, config: d
         "rms_dbfs": rms,
         "clipping": clipping,
         "reference_correlation": reference_correlation,
+        "frames": int(len(raw)),
+        "raw_shape": list(raw.shape),
+        "playback_shape": list(playback.shape),
+    }
+
+
+def _compute_channel_probe_qc(raw: np.ndarray, playback: np.ndarray) -> dict:
+    return {
+        "passed_basic_qc": True,
+        "input_peak_dbfs": {
+            f"input_{index}": _peak_dbfs(raw[:, index]) for index in range(raw.shape[1])
+        },
+        "input_rms_dbfs": {
+            f"input_{index}": _rms_dbfs(raw[:, index]) for index in range(raw.shape[1])
+        },
+        "output_peak_dbfs": {
+            f"output_{index}": _peak_dbfs(playback[:, index]) for index in range(playback.shape[1])
+        },
+        "output_rms_dbfs": {
+            f"output_{index}": _rms_dbfs(playback[:, index]) for index in range(playback.shape[1])
+        },
         "frames": int(len(raw)),
         "raw_shape": list(raw.shape),
         "playback_shape": list(playback.shape),

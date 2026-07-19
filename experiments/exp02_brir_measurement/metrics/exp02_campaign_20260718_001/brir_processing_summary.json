@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp02_brir_measurement",
+  "session_id": "exp02_campaign_20260718_001",
+  "processed_trials": 148,
+  "processed_impulse_responses": 296,
+  "expected_trials": 148,
+  "expected_impulse_responses": 296,
+  "missing_trials": [],
+  "summary_csv": "experiments/exp02_brir_measurement/metrics/exp02_campaign_20260718_001/brir_processing_summary.csv",
+  "processed_root": "experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001",
+  "geometry": {
+    "zero_direction_description": "Mannequin facing the acoustic frontal reference",
+    "positive_rotation_direction": "clockwise",
+    "reference_angle_range_deg": [
+      0,
+      360
+    ],
+    "reference_angle_step_deg": 10,
+    "closure_measurement_deg": 360,
+    "closure_of_angle_deg": 0,
+    "speaker_reference": {
+      "A": {
+        "azimuth_deg": -30,
+        "distance_m": 1.0,
+        "distance_reference": "mannequin nose",
+        "name": "Neumann A"
+      },
+      "B": {
+        "azimuth_deg": 30,
+        "distance_m": 1.0,
+        "distance_reference": "mannequin nose",
+        "name": "Neumann B"
+      }
+    }
+  }
+}

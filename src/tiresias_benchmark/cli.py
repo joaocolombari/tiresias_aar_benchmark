@@ -170,8 +170,30 @@ def cmd_sweep_generate(args: argparse.Namespace) -> None:
 
 def cmd_brir_process(args: argparse.Namespace) -> None:
     config = load_yaml(args.config)
+    if args.session_id:
+        config["process_session_id"] = args.session_id
+    if args.overwrite:
+        config["overwrite_processing"] = True
     experiment_02 = import_module("tiresias_benchmark.experiments.experiment_02")
-    result = experiment_02.run(config)
+    try:
+        result = experiment_02.run(config)
+    except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps(result, indent=2))
+
+
+def cmd_brir_validate(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    config["validate_session_id"] = args.session_id
+    config["validation_mode"] = args.mode
+    config["write_validation_wavs"] = args.write_wavs
+    if args.overwrite:
+        config["overwrite_validation"] = True
+    experiment_02 = import_module("tiresias_benchmark.experiments.experiment_02")
+    try:
+        result = experiment_02.run(config)
+    except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
     print(json.dumps(result, indent=2))
 
 
@@ -249,22 +271,30 @@ def cmd_exp01_guided_acquire(args: argparse.Namespace) -> None:
 
 
 def cmd_figures_generate(args: argparse.Namespace) -> None:
-    if args.experiment != "1":
-        raise SystemExit("figure generation is currently implemented for experiment 1 only")
     config = load_yaml(args.config)
-    figure_module = import_module("tiresias_benchmark.experiments.experiment_01_figures")
     try:
-        outputs = figure_module.generate_experiment_01_figures(
-            config,
-            input_csvs=[Path(item) for item in args.input] if args.input else None,
-            processed_dir=Path(args.processed_dir) if args.processed_dir else None,
-            raw_dir=Path(args.raw_dir) if args.raw_dir else None,
-            output_dir=Path(args.output_dir) if args.output_dir else None,
-            metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
-            require_all_runs=not args.allow_missing_runs,
-            sign_mode=args.sign,
-            overwrite=args.overwrite,
-        )
+        if args.experiment == "1":
+            figure_module = import_module("tiresias_benchmark.experiments.experiment_01_figures")
+            outputs = figure_module.generate_experiment_01_figures(
+                config,
+                input_csvs=[Path(item) for item in args.input] if args.input else None,
+                processed_dir=Path(args.processed_dir) if args.processed_dir else None,
+                raw_dir=Path(args.raw_dir) if args.raw_dir else None,
+                output_dir=Path(args.output_dir) if args.output_dir else None,
+                metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
+                require_all_runs=not args.allow_missing_runs,
+                sign_mode=args.sign,
+                overwrite=args.overwrite,
+            )
+        else:
+            figure_module = import_module("tiresias_benchmark.experiments.experiment_02_figures")
+            outputs = figure_module.generate_experiment_02_validation_report(
+                config,
+                session_id=args.session_id,
+                output_dir=Path(args.output_dir) if args.output_dir else None,
+                metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
+                overwrite=args.overwrite,
+            )
     except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
     print(json.dumps({key: str(value) for key, value in outputs.__dict__.items()}, indent=2))
@@ -332,6 +362,25 @@ def cmd_exp02_channel_probe(args: argparse.Namespace) -> None:
     print(json.dumps(result.as_dict(), indent=2))
 
 
+def cmd_exp02_output_probe(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
+    try:
+        result = audio.record_output_channel_probe(
+            config=config,
+            output_index=args.output_index,
+            session_id=args.session_id,
+            output_root=args.output_root,
+            attempt=args.attempt,
+            armed=args.armed,
+            simulate=args.simulate,
+            overwrite=args.overwrite,
+        )
+    except (FileExistsError, RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps(result.as_dict(), indent=2))
+
+
 def cmd_exp02_record_test_sweep(args: argparse.Namespace) -> None:
     config = load_yaml(args.config)
     audio = import_module("tiresias_benchmark.experiments.experiment_02_audio")
@@ -385,7 +434,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("brir-process")
     p.add_argument("--config", required=True)
+    p.add_argument("--session-id")
+    p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_brir_process)
+
+    p = sub.add_parser("brir-validate")
+    p.add_argument("--config", required=True)
+    p.add_argument("--session-id", required=True)
+    p.add_argument("--mode", choices=["same", "cross", "both"], default="both")
+    p.add_argument("--write-wavs", action="store_true")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_brir_validate)
 
     p = sub.add_parser("experiment-run")
     p.add_argument("--experiment", required=True, choices=["1", "2", "3", "4", "5", "6"])
@@ -417,13 +476,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_exp01_guided_acquire)
 
     p = sub.add_parser("figures-generate")
-    p.add_argument("--experiment", choices=["1"], default="1")
+    p.add_argument("--experiment", choices=["1", "2"], default="1")
     p.add_argument("--config", required=True)
     p.add_argument("--input", action="append", help="Segmented Experiment 1 CSV. Repeat for multiple runs.")
     p.add_argument("--processed-dir")
     p.add_argument("--raw-dir")
     p.add_argument("--output-dir")
     p.add_argument("--metrics-dir")
+    p.add_argument("--session-id", help="Experiment 2 session id for BRIR validation figures.")
     p.add_argument("--sign", choices=["auto", "normal", "inverted"], default="auto")
     p.add_argument("--allow-missing-runs", action="store_true")
     p.add_argument("--overwrite", action="store_true")
@@ -457,6 +517,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--simulate", action="store_true")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_exp02_channel_probe)
+
+    p = sub.add_parser("exp02-output-probe")
+    p.add_argument("--config", required=True)
+    p.add_argument("--output-index", type=int, required=True)
+    p.add_argument("--session-id", default="exp02_output_probe")
+    p.add_argument("--output-root")
+    p.add_argument("--attempt", type=int, default=1)
+    p.add_argument("--armed", action="store_true")
+    p.add_argument("--simulate", action="store_true")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_exp02_output_probe)
 
     p = sub.add_parser("exp02-record-test-sweep")
     p.add_argument("--config", required=True)

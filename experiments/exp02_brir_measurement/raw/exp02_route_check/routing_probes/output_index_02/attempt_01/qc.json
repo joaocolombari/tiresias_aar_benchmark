@@ -1,0 +1,36 @@
+{
+  "passed_basic_qc": true,
+  "input_peak_dbfs": {
+    "input_0": -71.93070775724271,
+    "input_1": -69.55860127565873,
+    "input_2": -93.91606391315788,
+    "input_3": -94.66716404202552
+  },
+  "input_rms_dbfs": {
+    "input_0": -81.39548617397416,
+    "input_1": -81.76695718648634,
+    "input_2": -101.81485727763024,
+    "input_3": -101.75655112949346
+  },
+  "output_peak_dbfs": {
+    "output_0": -Infinity,
+    "output_1": -Infinity,
+    "output_2": -48.000000395369824,
+    "output_3": -Infinity
+  },
+  "output_rms_dbfs": {
+    "output_0": -Infinity,
+    "output_1": -Infinity,
+    "output_2": -53.54122669354493,
+    "output_3": -Infinity
+  },
+  "frames": 19200,
+  "raw_shape": [
+    19200,
+    4
+  ],
+  "playback_shape": [
+    19200,
+    4
+  ]
+}

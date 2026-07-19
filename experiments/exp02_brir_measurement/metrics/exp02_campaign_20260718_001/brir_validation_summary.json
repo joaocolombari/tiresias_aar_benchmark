@@ -1,0 +1,16 @@
+{
+  "experiment_id": "exp02_brir_measurement",
+  "session_id": "exp02_campaign_20260718_001",
+  "mode": "both",
+  "validation_rows": 296,
+  "same_trial_rows": 148,
+  "cross_repetition_rows": 148,
+  "summary_csv": "experiments/exp02_brir_measurement/metrics/exp02_campaign_20260718_001/brir_validation_summary.csv",
+  "validation_audio_root": null,
+  "same_trial_mean_prediction_sdr_db": 25.97287716152822,
+  "cross_repetition_mean_prediction_sdr_db": 23.204696341556083,
+  "same_trial_mean_corr": 0.9986932931071472,
+  "cross_repetition_mean_corr": 0.9974297475745789,
+  "same_trial_mean_nrmse": 0.05068642275306354,
+  "cross_repetition_mean_nrmse": 0.07038933670751911
+}

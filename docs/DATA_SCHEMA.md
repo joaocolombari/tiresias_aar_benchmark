@@ -78,6 +78,73 @@ operator confirmations and QC decision.
 should contain absolute frame index, frames in block, PortAudio status flags and
 available host/device timing fields. Experiment 2 does not record BLE telemetry.
 
+## Experiment 2 Processed BRIR Files
+
+Processed session outputs live under:
+
+- `processed/<SESSION_ID>/irs/`;
+- `processed/<SESSION_ID>/metadata/`;
+- `metrics/<SESSION_ID>/brir_processing_summary.csv`;
+- `metrics/<SESSION_ID>/brir_processing_summary.json`.
+
+Each accepted trial exports:
+
+- `brir_theta_XXX_spk_Y_repZZ_ear_L.wav`;
+- `brir_theta_XXX_spk_Y_repZZ_ear_R.wav`;
+- `brir_theta_XXX_spk_Y_repZZ_stereo.wav`.
+
+The individual ear files are mono float WAV files. The stereo file is ordered
+`[ear_L, ear_R]`. The processor uses the electrical reference channel for
+regularized deconvolution and applies one common window origin to both ears.
+This preserves measured ITD; left and right are not independently peak-aligned.
+
+`brir_processing_summary.csv` contains:
+
+- trial identity, session id, nominal and wrapped angle;
+- closure flag preserving nominal 360 deg rows;
+- speaker id, azimuth and distance;
+- selected attempt number;
+- sample rate, input frame count and IR length;
+- common window start;
+- full-response and windowed L/R peak samples;
+- `itd_ms` and `ild_db`;
+- raw RMS levels;
+- lag-compensated `loopback_lag_ms` and `loopback_correlation`;
+- acquisition QC fields and output file paths.
+
+The measured campaign geometry is A = -30 deg and B = +30 deg, with both
+Neumanns at 1.0 m from the mannequin nose. Positive platform rotation is
+clockwise and physical zero is the mannequin facing the frontal reference.
+
+## Experiment 2 BRIR Validation Files
+
+BRIR validation outputs live under:
+
+- `metrics/<SESSION_ID>/brir_validation_summary.csv`;
+- `metrics/<SESSION_ID>/brir_validation_summary.json`;
+- optionally `processed/<SESSION_ID>/validation/` when `--write-wavs` is used.
+
+The validation reconstructs recorded microphone signals as:
+
+`predicted_ear = electrical_reference * estimated_ir_ear`.
+
+Validation rows use:
+
+- `validation_type`: `same_trial` or `cross_repetition`;
+- `source_trial_id`: trial that provided the estimated IR;
+- `target_trial_id`: trial whose raw microphone signal is predicted;
+- `mean_prediction_sdr_db`: signal-to-residual ratio for the prediction;
+- `mean_corr`: zero-lag correlation between predicted and measured waveforms;
+- `mean_nrmse`: residual RMS normalized by measured RMS;
+- `ear_l_*`, `ear_r_*`: ear-specific metrics;
+- `best_fit_gain`: scalar gain that best maps prediction to measurement;
+- `gain_corrected_sdr_db`: prediction SDR after allowing that scalar gain.
+
+`same_trial` validates reconstruction of the sweep that produced the IR and is
+therefore optimistic. `cross_repetition` uses one repetition's IR to predict the
+other repetition's raw response and is more informative for future convolution
+experiments.
+
 ## Benchmark Result Tables
 
 All angular fields use `_deg`, delays use `_ms`, sample rates use `_hz`, linear

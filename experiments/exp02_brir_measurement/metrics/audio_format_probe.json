@@ -1,0 +1,37 @@
+{
+  "selection": {
+    "input_device_index": 1,
+    "input_device_name": "Scarlett 18i8 USB",
+    "output_device_index": 1,
+    "output_device_name": "Scarlett 18i8 USB",
+    "host_api_index": 0,
+    "host_api_name": "Core Audio",
+    "max_input_channels": 20,
+    "max_output_channels": 8,
+    "requested_input_channels": 4,
+    "requested_output_channels": 4
+  },
+  "sample_rate_hz": 48000,
+  "block_size_frames": 512,
+  "candidates": [
+    {
+      "stream_dtype": "float32",
+      "check_input_settings": {
+        "passed": true,
+        "exception": null
+      },
+      "check_output_settings": {
+        "passed": true,
+        "exception": null
+      },
+      "full_duplex_open": {
+        "passed": true,
+        "attempted": true,
+        "exception": null
+      },
+      "passed": true
+    }
+  ],
+  "selected_stream_dtype": "float32",
+  "storage_dtype": "float32"
+}

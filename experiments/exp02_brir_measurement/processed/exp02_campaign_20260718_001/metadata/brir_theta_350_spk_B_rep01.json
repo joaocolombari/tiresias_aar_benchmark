@@ -1,0 +1,247 @@
+{
+  "trial": {
+    "trial_id": "brir_theta_350_spk_B_rep01",
+    "condition_id": "brir_theta_350_spk_B_rep01",
+    "angle_sequence_index": 35,
+    "angle_nominal_deg": 350,
+    "angle_wrapped_deg": 350,
+    "closure_measurement": false,
+    "speaker": "B",
+    "repetition": 1,
+    "expected_output_channel": "output_2",
+    "expected_reference_output_channel": "output_3",
+    "expected_input_channels": "input_1:ear_L;input_2:ear_R;input_3:reference",
+    "status": "planned",
+    "attempt_number": 1,
+    "notes": ""
+  },
+  "session_id": "exp02_campaign_20260718_001",
+  "attempt": 1,
+  "source_raw_wav": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/raw_input.wav",
+  "source_playback_wav": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/playback_output.wav",
+  "source_qc_json": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/qc.json",
+  "source_metadata_json": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/metadata.json",
+  "geometry": {
+    "zero_direction_description": "Mannequin facing the acoustic frontal reference",
+    "positive_rotation_direction": "clockwise",
+    "reference_angle_range_deg": [
+      0,
+      360
+    ],
+    "reference_angle_step_deg": 10,
+    "closure_measurement_deg": 360,
+    "closure_of_angle_deg": 0,
+    "speaker_reference": {
+      "A": {
+        "azimuth_deg": -30,
+        "distance_m": 1.0,
+        "distance_reference": "mannequin nose",
+        "name": "Neumann A"
+      },
+      "B": {
+        "azimuth_deg": 30,
+        "distance_m": 1.0,
+        "distance_reference": "mannequin nose",
+        "name": "Neumann B"
+      }
+    }
+  },
+  "speaker_azimuth_deg": 30.0,
+  "speaker_distance_m": 1.0,
+  "sample_rate_hz": 48000,
+  "frames_in": 406144,
+  "raw_channel_order": [
+    "ear_L",
+    "ear_R",
+    "electrical_reference"
+  ],
+  "deconvolution": {
+    "reference_channel": "electrical_reference",
+    "regularization": 2.9867037421746658e-05,
+    "regularization_fraction": 1e-10,
+    "ir_samples": 24000,
+    "window_start_sample": 201,
+    "common_left_right_window": true,
+    "itd_preserved": true
+  },
+  "metrics": {
+    "left_peak_sample_full": 250,
+    "right_peak_sample_full": 233,
+    "left_peak_sample_windowed": 49,
+    "right_peak_sample_windowed": 32,
+    "itd_ms": -0.3541666666666667,
+    "ild_db": -1.3263489840606866,
+    "reference_rms_dbfs": -24.322245101001805,
+    "loopback_lag_samples": 8846,
+    "loopback_lag_ms": 184.29166666666666,
+    "loopback_correlation": 0.9898131424025475,
+    "ear_l_rms_dbfs": -36.7410610086236,
+    "ear_r_rms_dbfs": -36.31243558007633
+  },
+  "qc": {
+    "passed_basic_qc": false,
+    "fail_reasons": [
+      "low_reference_correlation"
+    ],
+    "peak_dbfs": {
+      "ear_L": -19.31866490858853,
+      "ear_R": -19.974811200274225,
+      "reference": -19.276549314982176
+    },
+    "rms_dbfs": {
+      "ear_L": -36.7410610086236,
+      "ear_R": -36.31243558007633,
+      "reference": -24.322245101001805
+    },
+    "clipping": {
+      "ear_L": false,
+      "ear_R": false,
+      "reference": false
+    },
+    "reference_correlation": -0.005123918665208389,
+    "frames": 406144,
+    "raw_shape": [
+      406144,
+      3
+    ],
+    "playback_shape": [
+      406144,
+      4
+    ]
+  },
+  "acquisition_metadata": {
+    "experiment_id": "exp02_brir_measurement",
+    "session_id": "exp02_campaign_20260718_001",
+    "trial_id": "brir_theta_350_spk_B_rep01",
+    "signal_kind": "test_sweep",
+    "angle_nominal_deg": 350,
+    "angle_wrapped_deg": 350,
+    "closure_measurement": false,
+    "speaker": "B",
+    "repetition": 1,
+    "attempt": 1,
+    "simulated": false,
+    "stream_dtype": "float32",
+    "storage_dtype": "float32",
+    "sample_rate_hz": 48000,
+    "block_size_frames": 512,
+    "raw_channel_order": [
+      "ear_L",
+      "ear_R",
+      "electrical_reference"
+    ],
+    "audio_selection": {
+      "input_device_index": 0,
+      "input_device_name": "Scarlett 18i8 USB",
+      "output_device_index": 0,
+      "output_device_name": "Scarlett 18i8 USB",
+      "host_api_index": 0,
+      "host_api_name": "Core Audio",
+      "max_input_channels": 20,
+      "max_output_channels": 8,
+      "requested_input_channels": 4,
+      "requested_output_channels": 4
+    },
+    "audio_device_config": {
+      "interface": "Focusrite Scarlett 18i8",
+      "preferred_host_api": "Core Audio",
+      "input_device_name_contains": "Scarlett",
+      "output_device_name_contains": "Scarlett",
+      "input_device_index_override": null,
+      "output_device_index_override": null,
+      "sample_rate_hz": 48000,
+      "block_size_frames": 512,
+      "stream_dtype": "auto",
+      "stream_dtype_candidates": [
+        "float32"
+      ],
+      "storage_dtype": "float32",
+      "open_input_channel_count": 4,
+      "open_output_channel_count": 4,
+      "exclusive_required": true,
+      "input_channels": [
+        {
+          "physical_name": "Scarlett input 1 - Earthworks L",
+          "physical_number": 1,
+          "array_index": 0,
+          "logical_role": "mic_l"
+        },
+        {
+          "physical_name": "Scarlett input 2 - Earthworks R",
+          "physical_number": 2,
+          "array_index": 1,
+          "logical_role": "mic_r"
+        },
+        {
+          "physical_name": "Scarlett stream input 3 - electrical reference",
+          "physical_number": 3,
+          "array_index": 2,
+          "logical_role": "reference_input"
+        },
+        {
+          "physical_name": "Scarlett input 4 - unused",
+          "physical_number": 4,
+          "array_index": 3,
+          "logical_role": null
+        }
+      ],
+      "output_channels": [
+        {
+          "physical_name": "Scarlett output 1 - Neumann A",
+          "physical_number": 1,
+          "array_index": 0,
+          "logical_role": "speaker_a"
+        },
+        {
+          "physical_name": "Scarlett output 2 - Neumann B",
+          "physical_number": 2,
+          "array_index": 1,
+          "logical_role": "speaker_b"
+        },
+        {
+          "physical_name": "Scarlett output 3 - electrical reference copy",
+          "physical_number": 3,
+          "array_index": 2,
+          "logical_role": "reference_output"
+        },
+        {
+          "physical_name": "Scarlett output 4 - unused",
+          "physical_number": 4,
+          "array_index": 3,
+          "logical_role": null
+        }
+      ],
+      "channel_selection": {
+        "mic_left_index": 0,
+        "mic_right_index": 1,
+        "reference_input_index": 2,
+        "speaker_A_output_index": 0,
+        "speaker_B_output_index": 1,
+        "reference_output_index": 2
+      },
+      "probe_signal": {
+        "frequency_hz": 997.0,
+        "level_dbfs": -48.0,
+        "duration_s": 0.25,
+        "fade_in_s": 0.02,
+        "fade_out_s": 0.02,
+        "pre_silence_s": 0.05,
+        "post_silence_s": 0.1
+      }
+    },
+    "playback_sha256": "d70b4cdff8a4c54884c174a9c7c1fab1b5252f0daa110b353cf365af6d58fd0a",
+    "raw_sha256": "d17ff66fddfef200a2426a6caaef43a6504854e5c24f478e2d2d5748043eb9b3",
+    "files": {
+      "raw_input_wav": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/raw_input.wav",
+      "playback_output_wav": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/playback_output.wav",
+      "callback_timeline_csv": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/callback_timeline.csv",
+      "qc_json": "experiments/exp02_brir_measurement/raw/exp02_campaign_20260718_001/sweeps/brir_theta_350_spk_B_rep01/attempt_01/qc.json"
+    },
+    "created_host_time_ns": 1784415145580137000
+  },
+  "outputs": {
+    "ear_l_wav": "experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001/irs/brir_theta_350_spk_B_rep01_ear_L.wav",
+    "ear_r_wav": "experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001/irs/brir_theta_350_spk_B_rep01_ear_R.wav",
+    "stereo_wav": "experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001/irs/brir_theta_350_spk_B_rep01_stereo.wav"
+  }
+}

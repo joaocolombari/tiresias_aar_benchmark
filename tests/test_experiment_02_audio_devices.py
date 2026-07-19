@@ -293,6 +293,73 @@ class Experiment02AudioDeviceTests(unittest.TestCase):
             )
             self.assertTrue(result.raw_input_wav.exists())
 
+    def test_overwrite_replaces_existing_attempt_directory(self):
+        config = load_yaml(CONFIG_PATH)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = audio.record_probe(
+                config=config,
+                speaker="A",
+                session_id="sim",
+                output_root=tmp,
+                simulate=True,
+            )
+            stale = result.attempt_dir / "stale.txt"
+            stale.write_text("old")
+            with self.assertRaisesRegex(FileExistsError, "--overwrite"):
+                audio.record_probe(
+                    config=config,
+                    speaker="A",
+                    session_id="sim",
+                    output_root=tmp,
+                    simulate=True,
+                )
+            result2 = audio.record_probe(
+                config=config,
+                speaker="A",
+                session_id="sim",
+                output_root=tmp,
+                simulate=True,
+                overwrite=True,
+            )
+
+            self.assertTrue(result2.raw_input_wav.exists())
+            self.assertFalse(stale.exists())
+
+    def test_output_channel_probe_records_all_open_inputs(self):
+        config = load_yaml(CONFIG_PATH)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = audio.record_output_channel_probe(
+                config=config,
+                output_index=2,
+                session_id="sim",
+                output_root=tmp,
+                simulate=True,
+            )
+            metadata = json.loads(result.metadata_json.read_text())
+            qc = json.loads(result.qc_json.read_text())
+
+        self.assertEqual(metadata["signal_kind"], "output_channel_probe")
+        self.assertEqual(metadata["output_index"], 2)
+        self.assertEqual(qc["raw_shape"][1], config["audio_device"]["open_input_channel_count"])
+        finite_outputs = [
+            key
+            for key, value in qc["output_peak_dbfs"].items()
+            if value != float("-inf")
+        ]
+        self.assertEqual(finite_outputs, ["output_2"])
+
+    def test_output_channel_probe_rejects_invalid_output_index(self):
+        config = load_yaml(CONFIG_PATH)
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "output_index"):
+                audio.record_output_channel_probe(
+                    config=config,
+                    output_index=99,
+                    session_id="sim",
+                    output_root=tmp,
+                    simulate=True,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
