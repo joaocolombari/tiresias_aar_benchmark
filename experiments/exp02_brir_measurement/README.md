@@ -325,6 +325,11 @@ It deconvolves both ears against the electrical reference and applies one common
 left/right IR window. This preserves measured ITD; the two ears are not
 independently peak-aligned.
 
+If the configured microphones include `calibration_file`, the processor applies
+the inverse factory microphone magnitude response as a zero-phase frequency
+domain correction. This removes the Earthworks magnitude response from the
+exported BRIRs while preserving the rig's measured timing and ITD.
+
 Outputs:
 
 ```text

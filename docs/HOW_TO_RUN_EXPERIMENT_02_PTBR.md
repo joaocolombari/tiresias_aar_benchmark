@@ -469,9 +469,16 @@ A deconvolução usa:
 - `raw_input.wav` canal 3 como referência elétrica;
 - regularização definida por `qc.deconvolution_lambda_fraction`;
 - janela comum para L/R, sem alinhar cada orelha separadamente.
+- arquivos de calibração de fábrica dos Earthworks, quando definidos em
+  `microphones[*].calibration_file`, aplicados como correção inversa de
+  magnitude no domínio da frequência.
 
 Essa janela comum preserva o ITD medido. Não aplique normalização, limiter ou
 alinhamento independente entre orelhas nos arquivos de BRIR.
+
+A correção dos microfones remove a coloração de magnitude de cada Earthworks,
+mas não altera a fase medida da bancada. A validação por reconvolução aplica a
+mesma correção aos sinais captados antes de calcular SDR, correlação e NRMSE.
 
 Saídas:
 

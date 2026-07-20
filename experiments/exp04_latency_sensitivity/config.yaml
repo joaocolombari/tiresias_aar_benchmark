@@ -1,15 +1,48 @@
+experiment_id: exp04_latency_sensitivity
+
 sources:
   - name: source_a
-    azimuth_deg: -45
+    azimuth_deg: -30
     distance_m: 1.0
   - name: source_b
-    azimuth_deg: 45
+    azimuth_deg: 30
     distance_m: 1.0
-start_yaw_deg: -45
-stop_yaw_deg: 45
-duration_s: 3.0
+
+speech_dataset:
+  root: datasets/librispeech_dev_clean_200_seed_2026
+  manifest: manifest.csv
+  pair_count: 10
+  pair_seed: 20260720
+
+brir:
+  root: experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001/irs
+  repetitions: [1, 2]
+  angles_deg: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90,
+               100, 110, 120, 130, 140, 150, 160, 170,
+               180, 190, 200, 210, 220, 230, 240, 250,
+               260, 270, 280, 290, 300, 310, 320, 330,
+               340, 350]
+
+start_yaw_deg: -30
+stop_yaw_deg: 30
+hold_before_s: 1.0
+hold_after_s: 1.5
+speech_duration_s: 6.0
+post_switch_analysis_window_s: 1.0
+
 control_sample_rate_hz: 100
-angular_velocity_deg_s: 30
+delay_mode: hold
+angular_velocity_deg_s: [30, 60, 120]
 sigma_deg: [10, 20, 30, 45, 60]
 orientation_delay_ms: [0, 20, 40, 80, 120, 160, 200]
 bmax_db: 10.0
+
+trace_sigma_deg: 20
+trace_velocity_deg_s: 120
+trace_delay_ms: [0, 40, 80, 160, 200]
+
+outputs:
+  processed_dir: experiments/exp04_latency_sensitivity/processed
+  metrics_dir: experiments/exp04_latency_sensitivity/metrics
+  figures_dir: experiments/exp04_latency_sensitivity/figures
+  overwrite: true

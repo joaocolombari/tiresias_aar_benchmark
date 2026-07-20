@@ -55,7 +55,12 @@ def generate_experiment_02_validation_report(
     session_metrics_dir.mkdir(parents=True, exist_ok=True)
     session_figures_dir.mkdir(parents=True, exist_ok=True)
 
-    metrics = _combined_metrics(rows, session_id=session_id, validation_csv=validation_csv)
+    metrics = _combined_metrics(
+        rows,
+        session_id=session_id,
+        validation_csv=validation_csv,
+        microphone_calibration=_microphone_calibration_summary(config),
+    )
     outputs.metrics_json.write_text(json.dumps(metrics, indent=2) + "\n")
     outputs.results_table_md.write_text(_results_markdown(metrics, outputs) + "\n")
     _write_reconvolution_figure(rows, metrics, outputs)
@@ -110,7 +115,13 @@ def _load_validation_rows(path: Path) -> list[dict]:
     return rows
 
 
-def _combined_metrics(rows: list[dict], *, session_id: str, validation_csv: Path) -> dict:
+def _combined_metrics(
+    rows: list[dict],
+    *,
+    session_id: str,
+    validation_csv: Path,
+    microphone_calibration: dict,
+) -> dict:
     by_type = defaultdict(list)
     by_type_speaker = defaultdict(list)
     by_angle_type = defaultdict(list)
@@ -123,6 +134,7 @@ def _combined_metrics(rows: list[dict], *, session_id: str, validation_csv: Path
         "session_id": session_id,
         "validation_csv": str(validation_csv),
         "row_count": len(rows),
+        "microphone_calibration": microphone_calibration,
         "summary_by_validation_type": {
             validation_type: _summary_for_rows(values)
             for validation_type, values in sorted(by_type.items())
@@ -205,6 +217,8 @@ def _results_markdown(metrics: dict, outputs: Experiment02FigureOutputs) -> str:
         "",
         "The validation predicts the measured microphone sweep by convolving the captured electrical reference with the estimated BRIR. Same-trial validation is an optimistic upper bound because the IR and prediction target come from the same sweep. Cross-repetition validation is the stronger repeatability check because the IR from one repetition predicts the other repetition.",
         "",
+        _calibration_markdown_sentence(metrics["microphone_calibration"]),
+        "",
         f"Figure: `{outputs.reconvolution_png}`",
         "",
         "## Summary By Validation Type",
@@ -279,6 +293,41 @@ def _results_markdown(metrics: dict, outputs: Experiment02FigureOutputs) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def _microphone_calibration_summary(config: dict) -> dict:
+    microphones = []
+    for item in config.get("microphones", []):
+        calibration_file = item.get("calibration_file")
+        if not calibration_file:
+            continue
+        microphones.append(
+            {
+                "ear": item.get("ear"),
+                "name": item.get("name"),
+                "serial_number": item.get("serial_number"),
+                "calibration_file": calibration_file,
+                "correction": "inverse_magnitude_zero_phase",
+            }
+        )
+    return {
+        "enabled": bool(microphones),
+        "microphones": microphones,
+    }
+
+
+def _calibration_markdown_sentence(calibration: dict) -> str:
+    if not calibration.get("enabled"):
+        return "Microphone factory calibration was not applied."
+    parts = []
+    for item in calibration.get("microphones", []):
+        parts.append(
+            f"{item.get('ear')} serial `{item.get('serial_number')}` from `{item.get('calibration_file')}`"
+        )
+    return (
+        "Microphone factory magnitude calibration was applied as inverse zero-phase "
+        "frequency-domain correction for " + "; ".join(parts) + "."
+    )
 
 
 def _write_reconvolution_figure(

@@ -7,8 +7,11 @@ from tiresias_benchmark.cli import load_yaml
 import numpy as np
 
 from tiresias_benchmark.experiments.experiment_02 import (
+    MicrophoneCalibrationCurve,
+    apply_microphone_magnitude_correction,
     build_trial_plan,
     deconvolve_stereo_brir,
+    load_microphone_calibrations,
     predict_recording_from_ir,
     run,
     write_plan_csv,
@@ -144,6 +147,50 @@ class Experiment02PlanTests(unittest.TestCase):
 
         self.assertAlmostEqual(float(predicted[15]), 0.5)
         self.assertEqual(np.count_nonzero(predicted), 1)
+
+    def test_microphone_calibration_file_is_loaded_from_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "mic_ecf.txt"
+            path.write_text(
+                '"Transfer Function Mag - dB volts/volts"\n'
+                '"Hz" "Data"\n'
+                "  100.000,  -0.100\n"
+                " 1000.000,   0.000\n"
+                "10000.000,   0.200\n"
+            )
+            curves = load_microphone_calibrations(
+                {
+                    "microphones": [
+                        {
+                            "ear": "L",
+                            "serial_number": "test-left",
+                            "calibration_file": str(path),
+                        }
+                    ]
+                }
+            )
+
+        self.assertIn("L", curves)
+        self.assertEqual(curves["L"].serial_number, "test-left")
+        self.assertEqual(len(curves["L"].frequency_hz), 3)
+
+    def test_microphone_magnitude_correction_applies_inverse_gain(self):
+        signal = np.ones(16, dtype=np.float32)
+        calibration = MicrophoneCalibrationCurve(
+            ear="L",
+            path="memory",
+            serial_number=None,
+            frequency_hz=np.asarray([10.0, 24_000.0]),
+            magnitude_db=np.asarray([6.020599913279624, 6.020599913279624]),
+        )
+
+        corrected = apply_microphone_magnitude_correction(
+            signal,
+            sample_rate_hz=48_000,
+            calibration=calibration,
+        )
+
+        self.assertTrue(np.allclose(corrected, 0.5, atol=1e-6))
 
 
 if __name__ == "__main__":

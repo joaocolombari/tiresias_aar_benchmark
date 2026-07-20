@@ -118,12 +118,19 @@ source gain to both ears of each source image.
 
 ## Experiment 4: Latency Sensitivity
 
-Use the physical head orientation for the acoustic response and the delayed
-head orientation for attention gain:
+Use the physical head orientation for the measured BRIR acoustic response and
+the delayed head orientation for attention gain:
 
 `gain(t) = attention_model(yaw(t - control_delay_ms))`.
 
-Do not model this as final-output audio delay.
+The current geometry is source A at -30 deg and source B at +30 deg. Dry
+monophonic LibriSpeech sources are convolved with the Experiment 2 BRIR bank;
+negative yaw wraps to the corresponding 0-360 deg measured BRIR angle, so
+-30 deg uses `theta_330` and +30 deg uses `theta_030`.
+
+Do not model this as final-output audio delay. The audio scene follows the
+physical yaw trajectory; only the control variable passed to the monophonic
+Gaussian attention model is delayed.
 
 ## Experiment 5: Source Separator Requirements
 

@@ -4,6 +4,7 @@ import csv
 from dataclasses import dataclass
 from io import StringIO
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -47,6 +48,28 @@ class BrirTrial:
             "status": self.status,
             "attempt_number": self.attempt_number,
             "notes": self.notes,
+        }
+
+
+@dataclass(frozen=True)
+class MicrophoneCalibrationCurve:
+    ear: str
+    path: str
+    serial_number: str | None
+    frequency_hz: np.ndarray
+    magnitude_db: np.ndarray
+
+    def as_metadata(self) -> dict:
+        return {
+            "ear": self.ear,
+            "path": self.path,
+            "serial_number": self.serial_number,
+            "point_count": int(len(self.frequency_hz)),
+            "min_frequency_hz": float(np.min(self.frequency_hz)),
+            "max_frequency_hz": float(np.max(self.frequency_hz)),
+            "min_magnitude_db": float(np.min(self.magnitude_db)),
+            "max_magnitude_db": float(np.max(self.magnitude_db)),
+            "applied_correction": "inverse_magnitude_zero_phase",
         }
 
 
@@ -506,6 +529,7 @@ def validate_brir_session(
         )
 
     validations = _validation_pairs(trials, mode)
+    microphone_calibrations = load_microphone_calibrations(config)
     summary_dir = metrics_root / session_id
     summary_csv = summary_dir / "brir_validation_summary.csv"
     summary_json = summary_dir / "brir_validation_summary.json"
@@ -538,6 +562,7 @@ def validate_brir_session(
                 metadata_root=metadata_root,
                 validation_audio_root=validation_audio_root,
                 write_wavs=write_wavs,
+                microphone_calibrations=microphone_calibrations,
                 sf=sf,
             )
         )
@@ -639,6 +664,8 @@ def deconvolve_stereo_brir(
     response_length_samples: int,
     regularization_fraction: float,
     pre_samples: int = 32,
+    left_microphone_calibration: MicrophoneCalibrationCurve | None = None,
+    right_microphone_calibration: MicrophoneCalibrationCurve | None = None,
 ) -> StereoDeconvolutionResult:
     regularization = _regularization_from_reference(
         reference,
@@ -647,6 +674,16 @@ def deconvolve_stereo_brir(
     )
     left_full = regularized_deconvolution(ear_l, reference, regularization=regularization)
     right_full = regularized_deconvolution(ear_r, reference, regularization=regularization)
+    left_full = apply_microphone_magnitude_correction(
+        left_full,
+        sample_rate_hz=sample_rate_hz,
+        calibration=left_microphone_calibration,
+    )
+    right_full = apply_microphone_magnitude_correction(
+        right_full,
+        sample_rate_hz=sample_rate_hz,
+        calibration=right_microphone_calibration,
+    )
     left_peak = int(np.argmax(np.abs(left_full)))
     right_peak = int(np.argmax(np.abs(right_full)))
     window_start = max(0, min(left_peak, right_peak) - pre_samples)
@@ -668,6 +705,50 @@ def deconvolve_stereo_brir(
         ild_db=float(ild_db),
         regularization=float(regularization),
     )
+
+
+def apply_microphone_magnitude_correction(
+    signal: np.ndarray,
+    *,
+    sample_rate_hz: int,
+    calibration: MicrophoneCalibrationCurve | None,
+) -> np.ndarray:
+    if calibration is None:
+        return np.asarray(signal, dtype=np.float32)
+    values = np.asarray(signal, dtype=np.float64)
+    if values.size == 0:
+        return values.astype(np.float32)
+    n_fft = 1 << int(np.ceil(np.log2(max(2, values.size))))
+    spectrum = np.fft.rfft(values, n=n_fft)
+    frequencies = np.fft.rfftfreq(n_fft, d=1.0 / float(sample_rate_hz))
+    correction_db = _interpolated_inverse_microphone_response_db(
+        frequencies,
+        calibration.frequency_hz,
+        calibration.magnitude_db,
+    )
+    corrected = np.fft.irfft(spectrum * (10.0 ** (correction_db / 20.0)), n=n_fft)
+    return corrected[: values.size].astype(np.float32)
+
+
+def load_microphone_calibrations(config: dict) -> dict[str, MicrophoneCalibrationCurve]:
+    curves: dict[str, MicrophoneCalibrationCurve] = {}
+    for microphone in config.get("microphones", []):
+        path_value = microphone.get("calibration_file")
+        if not path_value:
+            continue
+        path = Path(path_value)
+        if not path.exists():
+            raise FileNotFoundError(f"microphone calibration file not found: {path}")
+        ear = str(microphone.get("ear", microphone.get("microphone_id", ""))).upper()
+        frequency_hz, magnitude_db = _read_microphone_calibration_file(path)
+        curves[ear] = MicrophoneCalibrationCurve(
+            ear=ear,
+            path=str(path),
+            serial_number=microphone.get("serial_number"),
+            frequency_hz=frequency_hz,
+            magnitude_db=magnitude_db,
+        )
+    return curves
 
 
 def _format_output_channel(array_index: object) -> str:
@@ -708,6 +789,7 @@ def _process_brir_trial(
         json.loads(metadata_json_in.read_text()) if metadata_json_in.exists() else {}
     )
     qc_config = config.get("qc", {})
+    microphone_calibrations = load_microphone_calibrations(config)
     loopback_lag_samples: int | None = None
     loopback_lag_ms: float | None = None
     loopback_correlation: float | None = None
@@ -740,6 +822,8 @@ def _process_brir_trial(
         response_length_samples=response_length,
         regularization_fraction=float(qc_config.get("deconvolution_lambda_fraction", 1e-10)),
         pre_samples=pre_samples,
+        left_microphone_calibration=microphone_calibrations.get("L"),
+        right_microphone_calibration=microphone_calibrations.get("R"),
     )
 
     ear_l_wav = ir_root / f"{trial.trial_id}_ear_L.wav"
@@ -784,6 +868,17 @@ def _process_brir_trial(
             "window_start_sample": result.window_start_sample,
             "common_left_right_window": True,
             "itd_preserved": True,
+        },
+        "microphone_calibration": {
+            "enabled": bool(microphone_calibrations),
+            "correction_domain": "frequency_domain",
+            "phase": "zero_phase_magnitude_only",
+            "left": microphone_calibrations.get("L").as_metadata()
+            if microphone_calibrations.get("L")
+            else None,
+            "right": microphone_calibrations.get("R").as_metadata()
+            if microphone_calibrations.get("R")
+            else None,
         },
         "metrics": {
             "left_peak_sample_full": result.left_peak_sample_full,
@@ -879,6 +974,7 @@ def _validate_brir_pair(
     metadata_root: Path,
     validation_audio_root: Path,
     write_wavs: bool,
+    microphone_calibrations: dict[str, MicrophoneCalibrationCurve],
     sf,
 ) -> BrirValidationResult:
     source_metadata_path = metadata_root / f"{source.trial_id}.json"
@@ -910,7 +1006,20 @@ def _validate_brir_pair(
             predict_recording_from_ir(reference, source_ir[:, 1], window_start, len(target_raw)),
         ]
     )
-    recorded = target_raw[:, :2].astype(np.float32, copy=False)
+    recorded = np.column_stack(
+        [
+            apply_microphone_magnitude_correction(
+                target_raw[:, 0],
+                sample_rate_hz=int(raw_sample_rate),
+                calibration=microphone_calibrations.get("L"),
+            ),
+            apply_microphone_magnitude_correction(
+                target_raw[:, 1],
+                sample_rate_hz=int(raw_sample_rate),
+                calibration=microphone_calibrations.get("R"),
+            ),
+        ]
+    )
     residual = recorded - predicted
 
     left = _prediction_metrics(recorded[:, 0], predicted[:, 0])
@@ -1084,6 +1193,55 @@ def _lagged_normalized_correlation(
     if denom <= 0.0:
         return best_lag, 0.0
     return best_lag, float(corr_window[best_index] / denom)
+
+
+def _read_microphone_calibration_file(path: Path) -> tuple[np.ndarray, np.ndarray]:
+    frequencies: list[float] = []
+    magnitudes: list[float] = []
+    for line in path.read_text().splitlines():
+        text = line.strip().strip('"')
+        if not text or text.lower().startswith("hz") or "transfer function" in text.lower():
+            continue
+        text = text.replace(",", " ")
+        parts = text.split()
+        if len(parts) < 2:
+            continue
+        try:
+            frequency = float(parts[0])
+            magnitude = float(parts[1])
+        except ValueError:
+            continue
+        if frequency > 0.0 and math.isfinite(magnitude):
+            frequencies.append(frequency)
+            magnitudes.append(magnitude)
+    if len(frequencies) < 2:
+        raise ValueError(f"microphone calibration file has too few points: {path}")
+    order = np.argsort(np.asarray(frequencies, dtype=np.float64))
+    return (
+        np.asarray(frequencies, dtype=np.float64)[order],
+        np.asarray(magnitudes, dtype=np.float64)[order],
+    )
+
+
+def _interpolated_inverse_microphone_response_db(
+    frequencies_hz: np.ndarray,
+    calibration_frequency_hz: np.ndarray,
+    calibration_magnitude_db: np.ndarray,
+) -> np.ndarray:
+    frequencies = np.asarray(frequencies_hz, dtype=np.float64)
+    calibration_frequencies = np.asarray(calibration_frequency_hz, dtype=np.float64)
+    calibration_magnitudes = np.asarray(calibration_magnitude_db, dtype=np.float64)
+    min_frequency = float(calibration_frequencies[0])
+    max_frequency = float(calibration_frequencies[-1])
+    clipped = np.clip(frequencies, min_frequency, max_frequency)
+    log_frequencies = np.log10(np.maximum(clipped, min_frequency))
+    log_calibration_frequencies = np.log10(calibration_frequencies)
+    interpolated_magnitude_db = np.interp(
+        log_frequencies,
+        log_calibration_frequencies,
+        calibration_magnitudes,
+    )
+    return -interpolated_magnitude_db
 
 
 def _ensure_can_write(paths: list[Path], overwrite: bool) -> None:

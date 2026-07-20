@@ -64,13 +64,40 @@
     "common_left_right_window": true,
     "itd_preserved": true
   },
+  "microphone_calibration": {
+    "enabled": true,
+    "correction_domain": "frequency_domain",
+    "phase": "zero_phase_magnitude_only",
+    "left": {
+      "ear": "L",
+      "path": "experiments/exp02_brir_measurement/calibration/LEFT_Earthworks_M23R_23872AA_ECF.txt",
+      "serial_number": "23872AA",
+      "point_count": 51,
+      "min_frequency_hz": 10.0,
+      "max_frequency_hz": 22856.84,
+      "min_magnitude_db": -0.2783129,
+      "max_magnitude_db": 0.4882111,
+      "applied_correction": "inverse_magnitude_zero_phase"
+    },
+    "right": {
+      "ear": "R",
+      "path": "experiments/exp02_brir_measurement/calibration/RIGHT_Earthworks_M23R_23894AA_ECF.txt",
+      "serial_number": "23894AA",
+      "point_count": 51,
+      "min_frequency_hz": 10.0,
+      "max_frequency_hz": 22856.84,
+      "min_magnitude_db": -0.2948525,
+      "max_magnitude_db": 0.4525105,
+      "applied_correction": "inverse_magnitude_zero_phase"
+    }
+  },
   "metrics": {
     "left_peak_sample_full": 244,
     "right_peak_sample_full": 235,
     "left_peak_sample_windowed": 41,
     "right_peak_sample_windowed": 32,
     "itd_ms": -0.1875,
-    "ild_db": -0.61067983898986,
+    "ild_db": -0.5704397900370495,
     "reference_rms_dbfs": -24.322658395549773,
     "loopback_lag_samples": 8846,
     "loopback_lag_ms": 184.29166666666666,

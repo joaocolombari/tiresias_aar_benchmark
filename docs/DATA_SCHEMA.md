@@ -97,6 +97,10 @@ The individual ear files are mono float WAV files. The stereo file is ordered
 `[ear_L, ear_R]`. The processor uses the electrical reference channel for
 regularized deconvolution and applies one common window origin to both ears.
 This preserves measured ITD; left and right are not independently peak-aligned.
+If `microphones[*].calibration_file` is configured, the exported BRIRs include
+the inverse factory microphone magnitude response as a zero-phase frequency
+domain correction. This removes Earthworks L/R magnitude coloration while
+preserving the measured left/right timing relationship.
 
 `brir_processing_summary.csv` contains:
 
@@ -111,6 +115,9 @@ This preserves measured ITD; left and right are not independently peak-aligned.
 - raw RMS levels;
 - lag-compensated `loopback_lag_ms` and `loopback_correlation`;
 - acquisition QC fields and output file paths.
+
+Each trial metadata JSON includes `microphone_calibration`, with the applied
+calibration file, serial number, frequency range and correction convention.
 
 The measured campaign geometry is A = -30 deg and B = +30 deg, with both
 Neumanns at 1.0 m from the mannequin nose. Positive platform rotation is
@@ -127,6 +134,12 @@ BRIR validation outputs live under:
 The validation reconstructs recorded microphone signals as:
 
 `predicted_ear = electrical_reference * estimated_ir_ear`.
+
+When microphone calibration is enabled, validation applies the same inverse
+magnitude correction to the measured target microphone channels before
+computing residual metrics. This compares mic-corrected prediction with
+mic-corrected measurement instead of comparing corrected IRs against raw
+microphone-colored recordings.
 
 Validation rows use:
 

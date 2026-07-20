@@ -102,12 +102,14 @@ microphones:
     ear: L
     name: "Earthworks L"
     input_role: mic_l
-    serial_number: null
+    serial_number: "23872AA"
+    calibration_file: "experiments/exp02_brir_measurement/calibration/LEFT_Earthworks_M23R_23872AA_ECF.txt"
   - microphone_id: R
     ear: R
     name: "Earthworks R"
     input_role: mic_r
-    serial_number: null
+    serial_number: "23894AA"
+    calibration_file: "experiments/exp02_brir_measurement/calibration/RIGHT_Earthworks_M23R_23894AA_ECF.txt"
 
 audio_device:
   interface: "Focusrite Scarlett 18i8"
