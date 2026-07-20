@@ -39,8 +39,9 @@ Required inputs:
   `datasets/librispeech_dev_clean_200_seed_2026/`
 
 The LibriSpeech subset README states that 200 `dev-clean` files were selected
-with seed `2026`. The current Exp04 config uses 10 deterministic source pairs
-from this subset with seed `20260720`, avoiding same-speaker pairs.
+with seed `2026`. The current Exp04 config uses 100 deterministic source pairs
+from this subset with seed `20260720`, avoiding same-speaker pairs when the
+manifest contains enough speaker diversity.
 
 ## Run
 

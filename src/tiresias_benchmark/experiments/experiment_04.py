@@ -540,28 +540,38 @@ def write_latency_figures(
     velocities = sorted({float(row["angular_velocity_deg_s"]) for row in summary_rows})
     delays = sorted({float(row["orientation_delay_ms"]) for row in summary_rows})
     sigmas = sorted({float(row["sigma_deg"]) for row in summary_rows})
-    fig, axes = plt.subplots(1, len(velocities), figsize=(12.0, 3.4), constrained_layout=True)
+    fig, axes = plt.subplots(2, len(velocities), figsize=(12.0, 6.1), constrained_layout=True)
     if len(velocities) == 1:
-        axes = [axes]
-    vmax = max(0.1, max(-float(row["tir_loss_vs_zero_delay_db_mean"]) for row in summary_rows))
-    for ax, velocity in zip(axes, velocities):
-        grid = np.full((len(sigmas), len(delays)), np.nan)
+        axes = np.asarray(axes).reshape(2, 1)
+    tir_vmax = max(0.1, max(-float(row["tir_loss_vs_zero_delay_db_mean"]) for row in summary_rows))
+    gain_vmax = max(0.1, max(float(row["gain_error_rms_db_mean"]) for row in summary_rows))
+    for column, velocity in enumerate(velocities):
+        tir_grid = np.full((len(sigmas), len(delays)), np.nan)
+        gain_grid = np.full((len(sigmas), len(delays)), np.nan)
         for row in summary_rows:
             if float(row["angular_velocity_deg_s"]) != velocity:
                 continue
             i = sigmas.index(float(row["sigma_deg"]))
             j = delays.index(float(row["orientation_delay_ms"]))
-            grid[i, j] = -float(row["tir_loss_vs_zero_delay_db_mean"])
-        image = ax.imshow(grid, origin="lower", aspect="auto", cmap="viridis", vmin=0.0, vmax=vmax)
-        ax.set_title(f"{velocity:.0f} deg/s", fontsize=11)
-        ax.set_xticks(range(len(delays)), [f"{d:.0f}" for d in delays])
-        ax.set_yticks(range(len(sigmas)), [f"{s:.0f}" for s in sigmas])
-        ax.set_xlabel("orientation delay (ms)")
-        if ax is axes[0]:
-            ax.set_ylabel("sigma (deg)")
-    fig.suptitle("Experiment 4 latency sensitivity: TIR loss vs zero-delay control", fontsize=13, fontweight="bold")
-    cbar = fig.colorbar(image, ax=axes, shrink=0.88)
-    cbar.set_label("TIR loss (dB)")
+            tir_grid[i, j] = -float(row["tir_loss_vs_zero_delay_db_mean"])
+            gain_grid[i, j] = float(row["gain_error_rms_db_mean"])
+        tir_ax = axes[0, column]
+        gain_ax = axes[1, column]
+        tir_image = tir_ax.imshow(tir_grid, origin="lower", aspect="auto", cmap="viridis", vmin=0.0, vmax=tir_vmax)
+        gain_image = gain_ax.imshow(gain_grid, origin="lower", aspect="auto", cmap="magma", vmin=0.0, vmax=gain_vmax)
+        for ax in (tir_ax, gain_ax):
+            ax.set_xticks(range(len(delays)), [f"{d:.0f}" for d in delays])
+            ax.set_yticks(range(len(sigmas)), [f"{s:.0f}" for s in sigmas])
+            ax.set_xlabel("orientation delay (ms)")
+        tir_ax.set_title(f"{velocity:.0f} deg/s", fontsize=11)
+        if column == 0:
+            tir_ax.set_ylabel("TIR loss\nsigma (deg)")
+            gain_ax.set_ylabel("gain error RMS\nsigma (deg)")
+    fig.suptitle("Experiment 4 latency sensitivity", fontsize=13, fontweight="bold")
+    tir_cbar = fig.colorbar(tir_image, ax=list(axes[0, :]), shrink=0.86)
+    tir_cbar.set_label("TIR loss vs zero-delay (dB)")
+    gain_cbar = fig.colorbar(gain_image, ax=list(axes[1, :]), shrink=0.86)
+    gain_cbar.set_label("gain error RMS (dB)")
     fig.savefig(heatmap_png, dpi=220)
     fig.savefig(heatmap_svg)
     plt.close(fig)
@@ -589,9 +599,10 @@ def write_latency_figures(
 
 
 def _summary_markdown(summary: dict, summary_rows: list[dict]) -> str:
-    zero_rows = [row for row in summary_rows if float(row["orientation_delay_ms"]) == 0.0]
+    ordered_rows = _ordered_summary_rows(summary_rows)
+    zero_rows = [row for row in ordered_rows if float(row["orientation_delay_ms"]) == 0.0]
     worst_rows = sorted(
-        [row for row in summary_rows if float(row["orientation_delay_ms"]) > 0.0],
+        [row for row in ordered_rows if float(row["orientation_delay_ms"]) > 0.0],
         key=lambda row: float(row["tir_loss_vs_zero_delay_db_mean"]),
     )[:10]
     lines = [
@@ -613,6 +624,7 @@ def _summary_markdown(summary: dict, summary_rows: list[dict]) -> str:
         f"- Speech pairs: {summary['speech_pair_count']}",
         "- Dataset: `datasets/librispeech_dev_clean_200_seed_2026`",
         "- The subset README states that 200 LibriSpeech dev-clean files were selected reproducibly with seed 2026.",
+        "- The default configuration uses 100 non-overlapping source pairs from those 200 files.",
         "",
         "## Zero-Delay Baseline",
         "",
@@ -625,6 +637,26 @@ def _summary_markdown(summary: dict, summary_rows: list[dict]) -> str:
             f"{_fmt(row['tir_improvement_db_mean'])} +/- {_fmt(row['tir_improvement_db_sd'])} | "
             f"{_fmt(row['si_sdr_improvement_db_mean'])} +/- {_fmt(row['si_sdr_improvement_db_sd'])} |"
         )
+    lines.extend(
+        [
+            "",
+            "## TIR Loss Matrices",
+            "",
+            "Values are mean dB loss relative to zero-delay control for the same velocity, sigma and speech pair.",
+            "",
+        ]
+    )
+    lines.extend(_matrix_sections(ordered_rows, "tir_loss_vs_zero_delay_db_mean", invert_sign=True))
+    lines.extend(
+        [
+            "",
+            "## Gain Error RMS Matrices",
+            "",
+            "Values are mean RMS source-gain error in dB relative to zero-delay control. These matrices isolate the control-model error and are the clearest view of the expected sigma-delay sensitivity.",
+            "",
+        ]
+    )
+    lines.extend(_matrix_sections(ordered_rows, "gain_error_rms_db_mean", invert_sign=False))
     lines.extend(
         [
             "",
@@ -650,10 +682,57 @@ def _summary_markdown(summary: dict, summary_rows: list[dict]) -> str:
             "- `tir_loss_vs_zero_delay_db` is computed relative to the same sigma, speech pair and trajectory with zero orientation delay.",
             "- The post-switch window treats source B as the target after the head crosses the midline between the two loudspeakers.",
             "- Delay is applied only to the control yaw used by the attention model; the audio signal itself is not delayed.",
-            "- The heatmap should be read as a design envelope: smaller sigma and faster motion make a given delay correspond to a larger effective angular error.",
+            "- The upper heatmap reports downstream audio impact. The lower heatmap reports gain-control error directly.",
+            "- Narrow sigma generally increases gain-control error for a given angular lag, but TIR loss can be non-monotonic because the zero-delay baseline and the post-switch acoustic mixture also depend on sigma.",
         ]
     )
     return "\n".join(lines)
+
+
+def _ordered_summary_rows(summary_rows: list[dict]) -> list[dict]:
+    return sorted(
+        summary_rows,
+        key=lambda row: (
+            float(row["angular_velocity_deg_s"]),
+            float(row["sigma_deg"]),
+            float(row["orientation_delay_ms"]),
+        ),
+    )
+
+
+def _matrix_sections(rows: list[dict], field: str, *, invert_sign: bool) -> list[str]:
+    velocities = sorted({float(row["angular_velocity_deg_s"]) for row in rows})
+    delays = sorted({float(row["orientation_delay_ms"]) for row in rows})
+    sigmas = sorted({float(row["sigma_deg"]) for row in rows})
+    by_key = {
+        (
+            float(row["angular_velocity_deg_s"]),
+            float(row["sigma_deg"]),
+            float(row["orientation_delay_ms"]),
+        ): row
+        for row in rows
+    }
+    lines: list[str] = []
+    for velocity in velocities:
+        lines.extend(
+            [
+                f"### {velocity:.0f} deg/s",
+                "",
+                "| Sigma (deg) | " + " | ".join(f"{delay:.0f} ms" for delay in delays) + " |",
+                "|---:|" + "|".join("---:" for _ in delays) + "|",
+            ]
+        )
+        for sigma in sigmas:
+            values = []
+            for delay in delays:
+                row = by_key[(velocity, sigma, delay)]
+                value = float(row[field])
+                if invert_sign:
+                    value = -value
+                values.append(_fmt(value))
+            lines.append(f"| {sigma:.0f} | " + " | ".join(values) + " |")
+        lines.append("")
+    return lines
 
 
 def _write_csv(path: Path, rows: list[dict]) -> None:
@@ -677,4 +756,7 @@ def _ensure_can_write(paths: list[Path], *, overwrite: bool) -> None:
 def _fmt(value: float) -> str:
     if value is None or not math.isfinite(float(value)):
         return "n/a"
-    return f"{float(value):.2f}"
+    numeric = float(value)
+    if abs(numeric) < 0.005:
+        numeric = 0.0
+    return f"{numeric:.2f}"

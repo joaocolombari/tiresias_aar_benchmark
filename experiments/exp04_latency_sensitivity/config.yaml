@@ -11,7 +11,7 @@ sources:
 speech_dataset:
   root: datasets/librispeech_dev_clean_200_seed_2026
   manifest: manifest.csv
-  pair_count: 10
+  pair_count: 100
   pair_seed: 20260720
 
 brir:
