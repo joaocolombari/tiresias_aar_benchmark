@@ -270,6 +270,27 @@ def cmd_exp01_guided_acquire(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_exp03_rank_sigma(args: argparse.Namespace) -> None:
+    config = load_yaml(args.config)
+    experiment_03 = import_module("tiresias_benchmark.experiments.experiment_03")
+    try:
+        result = experiment_03.write_global_sigma_ranking(
+            config,
+            processed_csv=Path(args.processed_csv) if args.processed_csv else None,
+            condition_summary_csv=Path(args.condition_summary_csv) if args.condition_summary_csv else None,
+            ranking_csv=Path(args.ranking_csv) if args.ranking_csv else None,
+            ranking_json=Path(args.ranking_json) if args.ranking_json else None,
+            ranking_md=Path(args.ranking_md) if args.ranking_md else None,
+            ranking_latex_txt=Path(args.ranking_latex_txt) if args.ranking_latex_txt else None,
+            ranking_png=Path(args.ranking_png) if args.ranking_png else None,
+            ranking_svg=Path(args.ranking_svg) if args.ranking_svg else None,
+            overwrite=args.overwrite,
+        )
+    except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps(result, indent=2))
+
+
 def cmd_figures_generate(args: argparse.Namespace) -> None:
     config = load_yaml(args.config)
     try:
@@ -495,6 +516,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--drift-after", action="store_true", default=None)
     p.add_argument("--no-drift", action="store_true")
     p.set_defaults(func=cmd_exp01_guided_acquire)
+
+    p = sub.add_parser("exp03-rank-sigma")
+    p.add_argument("--config", required=True)
+    p.add_argument("--processed-csv")
+    p.add_argument("--condition-summary-csv")
+    p.add_argument("--ranking-csv")
+    p.add_argument("--ranking-json")
+    p.add_argument("--ranking-md")
+    p.add_argument("--ranking-latex-txt")
+    p.add_argument("--ranking-png")
+    p.add_argument("--ranking-svg")
+    p.add_argument("--overwrite", action="store_true")
+    p.set_defaults(func=cmd_exp03_rank_sigma)
 
     p = sub.add_parser("figures-generate")
     p.add_argument("--experiment", choices=["1", "2"], default="1")

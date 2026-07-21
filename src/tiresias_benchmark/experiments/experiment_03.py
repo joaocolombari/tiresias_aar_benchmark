@@ -20,6 +20,11 @@ from tiresias_benchmark.experiments.experiment_04 import (
 from tiresias_benchmark.metrics.audio import si_sdr_db, tir_db, tir_improvement_db
 
 
+GLOBAL_SIGMA_RANKING_BOOTSTRAP_SEED = 20260721
+GLOBAL_SIGMA_RANKING_BOOTSTRAP_ITERATIONS = 10_000
+GLOBAL_SIGMA_PRACTICAL_EQUIVALENCE_DB = 0.5
+
+
 def run(config: dict) -> dict:
     outputs = config.get("outputs", {})
     processed_dir = Path(outputs.get("processed_dir", "experiments/exp03_sigma_sensitivity/processed"))
@@ -81,6 +86,90 @@ def run(config: dict) -> dict:
     summary_md.write_text(_summary_markdown(summary, summary_rows, config) + "\n")
     write_sigma_figures(summary_rows, config, heatmap_png, heatmap_svg, curve_png, curve_svg)
     return summary
+
+
+def write_global_sigma_ranking(
+    config: dict,
+    *,
+    processed_csv: Path | None = None,
+    condition_summary_csv: Path | None = None,
+    ranking_csv: Path | None = None,
+    ranking_json: Path | None = None,
+    ranking_md: Path | None = None,
+    ranking_latex_txt: Path | None = None,
+    ranking_png: Path | None = None,
+    ranking_svg: Path | None = None,
+    readme_path: Path | None = None,
+    overwrite: bool = False,
+    bootstrap_iterations: int = GLOBAL_SIGMA_RANKING_BOOTSTRAP_ITERATIONS,
+    bootstrap_seed: int = GLOBAL_SIGMA_RANKING_BOOTSTRAP_SEED,
+) -> dict:
+    outputs = config.get("outputs", {})
+    processed_dir = Path(outputs.get("processed_dir", "experiments/exp03_sigma_sensitivity/processed"))
+    metrics_dir = Path(outputs.get("metrics_dir", "experiments/exp03_sigma_sensitivity/metrics"))
+    figures_dir = Path(outputs.get("figures_dir", "experiments/exp03_sigma_sensitivity/figures"))
+    processed_csv = processed_csv or processed_dir / "exp03_sigma_results.csv"
+    condition_summary_csv = condition_summary_csv or metrics_dir / "exp03_sigma_summary_by_condition.csv"
+    ranking_csv = ranking_csv or metrics_dir / "global_sigma_ranking.csv"
+    ranking_json = ranking_json or metrics_dir / "global_sigma_ranking.json"
+    ranking_md = ranking_md or metrics_dir / "global_sigma_ranking.md"
+    ranking_latex_txt = ranking_latex_txt or metrics_dir / "global_sigma_ranking_latex.txt"
+    ranking_png = ranking_png or figures_dir / "global_sigma_ranking.png"
+    ranking_svg = ranking_svg or figures_dir / "global_sigma_ranking.svg"
+    readme_path = readme_path or Path("experiments/exp03_sigma_sensitivity/README.md")
+
+    _ensure_can_write([ranking_csv, ranking_json, ranking_md, ranking_latex_txt, ranking_png, ranking_svg], overwrite=overwrite)
+    if not processed_csv.exists():
+        raise FileNotFoundError(f"Experiment 3 detailed results not found: {processed_csv}")
+    if not condition_summary_csv.exists():
+        raise FileNotFoundError(f"Experiment 3 condition summary not found: {condition_summary_csv}")
+
+    detailed_rows = _read_csv_dicts(processed_csv)
+    condition_summary_rows = _read_csv_dicts(condition_summary_csv)
+    pair_sigma_rows = pair_sigma_angular_scores(detailed_rows)
+    ranking_rows = global_sigma_ranking_rows(
+        pair_sigma_rows,
+        bootstrap_iterations=bootstrap_iterations,
+        bootstrap_seed=bootstrap_seed,
+    )
+
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    _write_csv(ranking_csv, ranking_rows)
+    payload = {
+        "experiment_id": config.get("experiment_id", "exp03_sigma_sensitivity"),
+        "processed_csv": str(processed_csv),
+        "condition_summary_csv": str(condition_summary_csv),
+        "ranking_csv": str(ranking_csv),
+        "ranking_md": str(ranking_md),
+        "ranking_latex_txt": str(ranking_latex_txt),
+        "ranking_png": str(ranking_png),
+        "ranking_svg": str(ranking_svg),
+        "score_definition": "global_score_db is the lower bound of the deterministic pair bootstrap 95% CI for target-side angular_mean_delta_tir_db.",
+        "bootstrap": {
+            "unit": "pair_id",
+            "iterations": bootstrap_iterations,
+            "seed": bootstrap_seed,
+        },
+        "practical_equivalence_db": GLOBAL_SIGMA_PRACTICAL_EQUIVALENCE_DB,
+        "nominal_winner_sigma_deg": ranking_rows[0]["sigma_deg"] if ranking_rows else None,
+        "ranking": ranking_rows,
+    }
+    ranking_json.write_text(json.dumps(payload, indent=2) + "\n")
+    ranking_md.write_text(_global_sigma_ranking_markdown_table(ranking_rows) + "\n")
+    ranking_latex_txt.write_text(_global_sigma_ranking_latex_table(ranking_rows) + "\n")
+    write_global_sigma_ranking_figure(condition_summary_rows, ranking_svg, ranking_png)
+    _append_global_sigma_ranking_readme_section(
+        readme_path,
+        ranking_rows,
+        ranking_csv,
+        ranking_json,
+        ranking_md,
+        ranking_latex_txt,
+        ranking_svg,
+        ranking_png,
+    )
+    return payload
 
 
 def run_sigma_grid(config: dict, speech_pairs: list, brir_bank: dict[str, dict[int, np.ndarray]]) -> list[dict]:
@@ -345,6 +434,233 @@ def write_sigma_figures(
     plt.close(fig)
 
 
+def pair_sigma_angular_scores(rows: list[dict]) -> list[dict]:
+    target_angles = _target_angles_by_source(rows)
+    grouped: dict[tuple[str, float, str, float], list[dict]] = {}
+    for row in rows:
+        pair_id = str(row["pair_id"])
+        sigma = float(row["sigma_deg"])
+        target = str(row["target_source"])
+        head_yaw = float(row["head_yaw_deg"])
+        key = (pair_id, sigma, target, head_yaw)
+        grouped.setdefault(key, []).append(row)
+
+    target_curves: dict[tuple[str, float, str], list[tuple[float, float]]] = {}
+    for (pair_id, sigma, target, _head_yaw), values in grouped.items():
+        target_angle = mean(float(item["target_angle_deg"]) for item in values)
+        head_yaw = mean(float(item["head_yaw_deg"]) for item in values)
+        interferer_angle = _interferer_angle_for_target(target, target_angles)
+        if interferer_angle is not None:
+            target_error = abs(float(circular_difference_deg(head_yaw, target_angle)))
+            interferer_error = abs(float(circular_difference_deg(head_yaw, interferer_angle)))
+            if target_error > interferer_error + 1e-9:
+                continue
+        relative_yaw = float(circular_difference_deg(head_yaw, target_angle))
+        tir_mean = mean(float(item["tir_improvement_db"]) for item in values)
+        target_curves.setdefault((pair_id, sigma, target), []).append((relative_yaw, tir_mean))
+
+    pair_sigma_targets: dict[tuple[str, float], dict[str, float]] = {}
+    for (pair_id, sigma, target), points in target_curves.items():
+        area_mean = normalized_trapezoid_mean(points)
+        pair_sigma_targets.setdefault((pair_id, sigma), {})[target] = area_mean
+
+    rows_out = []
+    for (pair_id, sigma), target_scores in sorted(pair_sigma_targets.items(), key=lambda item: (item[0][0], item[0][1])):
+        target_values = [target_scores[target] for target in sorted(target_scores)]
+        angular_mean = _clean_near_zero(float(mean(target_values)))
+        row = {
+            "pair_id": pair_id,
+            "sigma_deg": sigma,
+            "target_count": len(target_values),
+            "angular_mean_delta_tir_db": angular_mean,
+        }
+        for target, value in sorted(target_scores.items()):
+            row[f"{target}_angular_mean_delta_tir_db"] = _clean_near_zero(value)
+        rows_out.append(row)
+    return rows_out
+
+
+def _target_angles_by_source(rows: list[dict]) -> dict[str, float]:
+    grouped: dict[str, list[float]] = {}
+    for row in rows:
+        grouped.setdefault(str(row["target_source"]), []).append(float(row["target_angle_deg"]))
+    return {target: float(median(values)) for target, values in grouped.items()}
+
+
+def _interferer_angle_for_target(target: str, target_angles: dict[str, float]) -> float | None:
+    others = [angle for other_target, angle in sorted(target_angles.items()) if other_target != target]
+    if len(others) != 1:
+        return None
+    return float(others[0])
+
+
+def normalized_trapezoid_mean(points: list[tuple[float, float]]) -> float:
+    if len(points) < 2:
+        raise ValueError("at least two yaw points are required for trapezoidal integration")
+    merged: dict[float, list[float]] = {}
+    for yaw, value in points:
+        if not math.isfinite(float(yaw)) or not math.isfinite(float(value)):
+            continue
+        merged.setdefault(float(yaw), []).append(float(value))
+    ordered = sorted((yaw, mean(values)) for yaw, values in merged.items())
+    if len(ordered) < 2:
+        raise ValueError("at least two finite unique yaw points are required for trapezoidal integration")
+    x = np.asarray([item[0] for item in ordered], dtype=float)
+    y = np.asarray([item[1] for item in ordered], dtype=float)
+    extent = float(x[-1] - x[0])
+    if extent <= 0.0:
+        raise ValueError("yaw integration extent must be positive")
+    if hasattr(np, "trapezoid"):
+        area = np.trapezoid(y, x)
+    else:
+        area = np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1]) * 0.5)
+    return float(area / extent)
+
+
+def global_sigma_ranking_rows(
+    pair_sigma_rows: list[dict],
+    *,
+    bootstrap_iterations: int = GLOBAL_SIGMA_RANKING_BOOTSTRAP_ITERATIONS,
+    bootstrap_seed: int = GLOBAL_SIGMA_RANKING_BOOTSTRAP_SEED,
+) -> list[dict]:
+    by_pair_sigma = {
+        (str(row["pair_id"]), float(row["sigma_deg"])): float(row["angular_mean_delta_tir_db"])
+        for row in pair_sigma_rows
+    }
+    pair_ids = sorted({key[0] for key in by_pair_sigma})
+    sigmas = sorted({key[1] for key in by_pair_sigma})
+    if not pair_ids or not sigmas:
+        raise ValueError("no pair/sigma rows available for global sigma ranking")
+    missing = [
+        (pair_id, sigma)
+        for pair_id in pair_ids
+        for sigma in sigmas
+        if (pair_id, sigma) not in by_pair_sigma
+    ]
+    if missing:
+        raise ValueError(f"incomplete pair/sigma grid; first missing entry: {missing[0]}")
+
+    rng = np.random.default_rng(bootstrap_seed)
+    bootstrap_means = {sigma: [] for sigma in sigmas}
+    pair_count = len(pair_ids)
+    for _ in range(int(bootstrap_iterations)):
+        sampled_indices = rng.integers(0, pair_count, size=pair_count)
+        sampled_pairs = [pair_ids[index] for index in sampled_indices]
+        for sigma in sigmas:
+            bootstrap_means[sigma].append(
+                float(mean(by_pair_sigma[(pair_id, sigma)] for pair_id in sampled_pairs))
+            )
+
+    rows = []
+    for sigma in sigmas:
+        values = [by_pair_sigma[(pair_id, sigma)] for pair_id in pair_ids]
+        ci_low, ci_high = np.percentile(np.asarray(bootstrap_means[sigma], dtype=float), [2.5, 97.5])
+        row = {
+            "sigma_deg": sigma,
+            "pair_count": pair_count,
+            "angular_mean_delta_tir_db_mean": _clean_near_zero(float(mean(values))),
+            "angular_mean_delta_tir_db_median": _clean_near_zero(float(median(values))),
+            "angular_mean_delta_tir_db_ci95_low": _clean_near_zero(float(ci_low)),
+            "angular_mean_delta_tir_db_ci95_high": _clean_near_zero(float(ci_high)),
+            "global_score_db": _clean_near_zero(float(ci_low)),
+            "angular_mean_delta_tir_db_p10": _clean_near_zero(float(np.percentile(np.asarray(values, dtype=float), 10))),
+            "positive_pair_fraction": float(sum(1 for value in values if value > 0.0) / len(values)),
+            "bootstrap_iterations": int(bootstrap_iterations),
+            "bootstrap_seed": int(bootstrap_seed),
+        }
+        rows.append(row)
+
+    rows.sort(key=lambda row: (-row["global_score_db"], row["sigma_deg"]))
+    winner = rows[0]
+    winner_low = float(winner["angular_mean_delta_tir_db_ci95_low"])
+    winner_high = float(winner["angular_mean_delta_tir_db_ci95_high"])
+    winner_mean = float(winner["angular_mean_delta_tir_db_mean"])
+    for index, row in enumerate(rows, start=1):
+        ci_low = float(row["angular_mean_delta_tir_db_ci95_low"])
+        ci_high = float(row["angular_mean_delta_tir_db_ci95_high"])
+        ci_overlaps = max(ci_low, winner_low) <= min(ci_high, winner_high)
+        mean_close = abs(float(row["angular_mean_delta_tir_db_mean"]) - winner_mean) < GLOBAL_SIGMA_PRACTICAL_EQUIVALENCE_DB
+        row["rank"] = index
+        row["nominal_winner"] = index == 1
+        row["practically_equivalent_to_winner"] = bool(index == 1 or (mean_close and ci_overlaps))
+    return rows
+
+
+def write_global_sigma_ranking_figure(
+    summary_rows: list[dict],
+    output_svg: Path,
+    output_png: Path,
+) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    try:
+        import seaborn as sns
+
+        sns.set_theme(context="paper", style="whitegrid", font="DejaVu Sans")
+    except ImportError:
+        try:
+            plt.style.use("seaborn-v0_8-whitegrid")
+        except OSError:
+            plt.style.use("default")
+
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 8.4,
+            "axes.titlesize": 9.2,
+            "axes.labelsize": 8.4,
+            "axes.titleweight": "bold",
+            "xtick.labelsize": 7.5,
+            "ytick.labelsize": 7.5,
+            "legend.fontsize": 7.5,
+            "svg.fonttype": "none",
+        }
+    )
+
+    sigmas = sorted({float(row["sigma_deg"]) for row in summary_rows})
+    head_yaws = sorted({float(row["head_yaw_deg"]) for row in summary_rows})
+    targets = ["source_a", "source_b"]
+    target_names = {"source_a": "A. Target A", "source_b": "B. Target B"}
+    vmax = max(0.1, max(float(row["tir_improvement_db_mean"]) for row in summary_rows))
+    vmin = min(0.0, min(float(row["tir_improvement_db_mean"]) for row in summary_rows))
+
+    fig = plt.figure(figsize=(7.35, 3.2))
+    grid_spec = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.0, 0.045], wspace=0.16)
+    heat_axes = [fig.add_subplot(grid_spec[0, 0]), fig.add_subplot(grid_spec[0, 1])]
+    cbar_ax = fig.add_subplot(grid_spec[0, 2])
+    image = None
+    for index, target in enumerate(targets):
+        matrix = np.full((len(sigmas), len(head_yaws)), np.nan)
+        for row in summary_rows:
+            if row["target_source"] != target:
+                continue
+            i = sigmas.index(float(row["sigma_deg"]))
+            j = head_yaws.index(float(row["head_yaw_deg"]))
+            matrix[i, j] = float(row["tir_improvement_db_mean"])
+        image = heat_axes[index].imshow(matrix, origin="lower", aspect="auto", cmap="viridis", vmin=vmin, vmax=vmax)
+        for yaw in (-30.0, 30.0):
+            if yaw in head_yaws:
+                heat_axes[index].axvline(head_yaws.index(yaw), color="#f7f7f7", linestyle="--", linewidth=0.75)
+        heat_axes[index].set_title(target_names[target], loc="left")
+        heat_axes[index].set_xticks(range(0, len(head_yaws), 3), [f"{yaw:.0f}" for yaw in head_yaws[::3]])
+        heat_axes[index].set_yticks(range(len(sigmas)), [f"{sigma:.0f}" for sigma in sigmas])
+        heat_axes[index].set_xlabel("Head yaw (deg)")
+        if index == 0:
+            heat_axes[index].set_ylabel("Sigma (deg)")
+    cbar = fig.colorbar(image, cax=cbar_ax)
+    cbar.set_label("Mean ΔTIR (dB)")
+    fig.suptitle("Experiment 3: sigma sensitivity", fontsize=11, fontweight="bold")
+    fig.subplots_adjust(left=0.08, right=0.93, bottom=0.2, top=0.78)
+    output_svg.parent.mkdir(parents=True, exist_ok=True)
+    output_png.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_png, bbox_inches="tight", dpi=300)
+    fig.savefig(output_svg, bbox_inches="tight")
+    plt.close(fig)
+
+
 def _summary_markdown(summary: dict, summary_rows: list[dict], config: dict) -> str:
     target_rows = [
         row
@@ -447,6 +763,137 @@ def _write_csv(path: Path, rows: list[dict]) -> None:
         writer = csv.DictWriter(file, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _read_csv_dicts(path: Path) -> list[dict]:
+    with path.open(newline="") as file:
+        return list(csv.DictReader(file))
+
+
+def _global_sigma_ranking_markdown_table(ranking_rows: list[dict]) -> str:
+    lines = [
+        "# Global Sigma Ranking",
+        "",
+        "Score definition: target-side angular mean `Delta TIR` is computed per `pair_id` and sigma by integrating only the yaw region where the target is at least as close to the head direction as the interferer. `global_score_db` is the lower bound of the deterministic pair-bootstrap 95% CI.",
+        "",
+        "| Rank | Sigma (deg) | Mean (dB) | Median (dB) | 95% CI (dB) | Score (dB) | P10 (dB) | Positive pairs | Practical tie |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+    ]
+    for row in ranking_rows:
+        lines.append(
+            f"| {row['rank']} | {float(row['sigma_deg']):.0f} | "
+            f"{_fmt(row['angular_mean_delta_tir_db_mean'])} | "
+            f"{_fmt(row['angular_mean_delta_tir_db_median'])} | "
+            f"[{_fmt(row['angular_mean_delta_tir_db_ci95_low'])}, {_fmt(row['angular_mean_delta_tir_db_ci95_high'])}] | "
+            f"{_fmt(row['global_score_db'])} | "
+            f"{_fmt(row['angular_mean_delta_tir_db_p10'])} | "
+            f"{100.0 * float(row['positive_pair_fraction']):.0f}% | "
+            f"{'yes' if row['practically_equivalent_to_winner'] else 'no'} |"
+        )
+    return "\n".join(lines)
+
+
+def _global_sigma_ranking_latex_table(ranking_rows: list[dict]) -> str:
+    lines = [
+        r"\begin{table}[t]",
+        r"\centering",
+        r"\caption{Global sigma ranking from target-side angular mean $\Delta$TIR. The score is the lower bound of the pair-bootstrap 95\% confidence interval.}",
+        r"\label{tab:exp03_sigma_ranking}",
+        r"\begin{tabular}{rrrrrrrr}",
+        r"\toprule",
+        r"Rank & $\sigma$ (deg) & Mean & 95\% CI & Score & P10 & Positive pairs & Tie \\",
+        r"\midrule",
+    ]
+    for row in ranking_rows:
+        lines.append(
+            f"{row['rank']} & {float(row['sigma_deg']):.0f} & "
+            f"{_fmt(row['angular_mean_delta_tir_db_mean'])} & "
+            f"[{_fmt(row['angular_mean_delta_tir_db_ci95_low'])}, {_fmt(row['angular_mean_delta_tir_db_ci95_high'])}] & "
+            f"{_fmt(row['global_score_db'])} & "
+            f"{_fmt(row['angular_mean_delta_tir_db_p10'])} & "
+            f"{100.0 * float(row['positive_pair_fraction']):.0f}\\% & "
+            f"{'yes' if row['practically_equivalent_to_winner'] else 'no'} \\\\"
+        )
+    lines.extend(
+        [
+            r"\bottomrule",
+            r"\end{tabular}",
+            rf"\par\smallskip\footnotesize Tie indicates practical equivalence to the nominal winner: mean difference $< {GLOBAL_SIGMA_PRACTICAL_EQUIVALENCE_DB:.1f}$ dB and overlapping 95\% confidence intervals.",
+            r"\end{table}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _clean_near_zero(value: float, *, eps: float = 1e-12) -> float:
+    return 0.0 if abs(float(value)) < eps else float(value)
+
+
+def _append_global_sigma_ranking_readme_section(
+    readme_path: Path,
+    ranking_rows: list[dict],
+    ranking_csv: Path,
+    ranking_json: Path,
+    ranking_md: Path,
+    ranking_latex_txt: Path,
+    ranking_svg: Path,
+    ranking_png: Path,
+) -> None:
+    if not ranking_rows:
+        return
+    winner = ranking_rows[0]
+    equivalent = [
+        row
+        for row in ranking_rows
+        if row["practically_equivalent_to_winner"] and not row["nominal_winner"]
+    ]
+    equivalent_text = (
+        ", ".join(f"{float(row['sigma_deg']):.0f} deg" for row in equivalent)
+        if equivalent
+        else "none"
+    )
+    section = "\n".join(
+        [
+            "<!-- global-sigma-ranking:start -->",
+            "## Global Sigma Ranking",
+            "",
+            "The global sigma score is based on the primary metric, `Delta TIR`. For each `pair_id` and sigma, the benchmark averages available repeated/content/order rows at each target and yaw. It then integrates only the target-side region: yaw positions where the target is at least as close to the head direction as the interferer. This avoids the symmetric cancellation that occurs when the whole yaw range is integrated for both targets.",
+            "",
+            "The target-side `Delta TIR` curve is integrated using trapezoidal integration over yaw relative to the target and normalized by the investigated angular extent. The two target definitions are then averaged with equal weight.",
+            "",
+            "The paper-facing score is conservative:",
+            "",
+            "```text",
+            "global_score_db = lower bound of the pair-bootstrap 95% CI",
+            "```",
+            "",
+            f"The nominal winner is `sigma = {float(winner['sigma_deg']):.0f} deg` with `global_score_db = {_fmt(winner['global_score_db'])} dB` and mean angular benefit `{_fmt(winner['angular_mean_delta_tir_db_mean'])} dB`.",
+            "",
+            f"Practical ties to the winner: {equivalent_text}. A sigma is marked as practically equivalent when its mean differs from the winner by less than {GLOBAL_SIGMA_PRACTICAL_EQUIVALENCE_DB:.1f} dB and its 95% CI overlaps the winner's CI.",
+            "",
+            "New additive artifacts:",
+            "",
+            f"- `{ranking_csv}`",
+            f"- `{ranking_json}`",
+            f"- `{ranking_md}`",
+            f"- `{ranking_latex_txt}`",
+            f"- `{ranking_svg}`",
+            f"- `{ranking_png}`",
+            "<!-- global-sigma-ranking:end -->",
+        ]
+    )
+    if readme_path.exists():
+        text = readme_path.read_text()
+    else:
+        text = ""
+    start = "<!-- global-sigma-ranking:start -->"
+    end = "<!-- global-sigma-ranking:end -->"
+    if start in text and end in text:
+        before = text.split(start, 1)[0].rstrip()
+        after = text.split(end, 1)[1].lstrip()
+        readme_path.write_text(before + "\n\n" + section + "\n\n" + after)
+    else:
+        readme_path.write_text(text.rstrip() + "\n\n" + section + "\n")
 
 
 def _ensure_can_write(paths: list[Path], *, overwrite: bool) -> None:

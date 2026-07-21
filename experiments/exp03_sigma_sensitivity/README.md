@@ -126,3 +126,31 @@ model. The right panel shows the corresponding measured-BRIR audio impact.
 - The attention model is monophonic.
 - Measured BRIRs provide the binaural source images.
 - Analytical ITD/ILD rendering is not used.
+
+<!-- global-sigma-ranking:start -->
+## Global Sigma Ranking
+
+The global sigma score is based on the primary metric, `Delta TIR`. For each `pair_id` and sigma, the benchmark averages available repeated/content/order rows at each target and yaw. It then integrates only the target-side region: yaw positions where the target is at least as close to the head direction as the interferer. This avoids the symmetric cancellation that occurs when the whole yaw range is integrated for both targets.
+
+The target-side `Delta TIR` curve is integrated using trapezoidal integration over yaw relative to the target and normalized by the investigated angular extent. The two target definitions are then averaged with equal weight.
+
+The paper-facing score is conservative:
+
+```text
+global_score_db = lower bound of the pair-bootstrap 95% CI
+```
+
+The nominal winner is `sigma = 30 deg` with `global_score_db = 5.47 dB` and mean angular benefit `5.47 dB`.
+
+Practical ties to the winner: none. A sigma is marked as practically equivalent when its mean differs from the winner by less than 0.5 dB and its 95% CI overlaps the winner's CI.
+
+New additive artifacts:
+
+- `experiments/exp03_sigma_sensitivity/metrics/global_sigma_ranking.csv`
+- `experiments/exp03_sigma_sensitivity/metrics/global_sigma_ranking.json`
+- `experiments/exp03_sigma_sensitivity/metrics/global_sigma_ranking.md`
+- `experiments/exp03_sigma_sensitivity/metrics/global_sigma_ranking_latex.txt`
+- `experiments/exp03_sigma_sensitivity/figures/global_sigma_ranking.svg`
+- `experiments/exp03_sigma_sensitivity/figures/global_sigma_ranking.png`
+<!-- global-sigma-ranking:end -->
+

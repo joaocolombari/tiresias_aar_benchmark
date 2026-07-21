@@ -491,6 +491,8 @@ def write_separator_figures(
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    _configure_separator_plot_style(plt)
+
     representative_sigma = float(config.get("figures", {}).get("representative_sigma_deg", 20.0))
     representative_orientation_delay = float(config.get("figures", {}).get("representative_orientation_delay_ms", 0.0))
     representative_source_delay = float(config.get("figures", {}).get("representative_source_delay_ms", 0.0))
@@ -521,20 +523,18 @@ def write_separator_figures(
             grid[i, j] = max(0.0, -float(row["tir_loss_vs_ideal_db_mean"]))
         ax = axes[index]
         image = ax.imshow(grid, origin="lower", aspect="auto", cmap="viridis", vmin=0.0, vmax=vmax)
-        ax.set_title(f"{velocity:.0f} deg/s", fontsize=11)
+        ax.set_title(f"{velocity:.0f} deg/s")
         ax.set_xticks(range(len(sdr_labels)), [_display_sdr_label(label) for label in sdr_labels])
         ax.set_yticks(range(len(sigmas)), [f"{sigma:.0f}" for sigma in sigmas])
-        ax.set_xlabel("separator SDR (dB)")
+        ax.set_xlabel("separator setting")
         if index == 0:
             ax.set_ylabel("sigma (deg)")
     fig.suptitle(
-        f"Experiment 5 degradation from separator leakage, source delay={representative_source_delay:.0f} ms",
-        fontsize=13,
-        fontweight="bold",
+        f"TIR loss from separator leakage, source delay={representative_source_delay:.0f} ms",
     )
     cbar = fig.colorbar(image, ax=list(axes), shrink=0.86)
-    cbar.set_label("TIR loss vs ideal separator (dB)")
-    fig.savefig(heatmap_png, dpi=220)
+    cbar.set_label("TIR loss vs ideal/no-leakage separator (dB)")
+    fig.savefig(heatmap_png)
     fig.savefig(heatmap_svg)
     plt.close(fig)
 
@@ -564,17 +564,16 @@ def write_separator_figures(
                 label=f"{sigma:.0f} deg",
             )
         ax.axhline(0.90, color="#333333", linestyle="--", linewidth=1.0)
-        ax.set_title(f"{velocity:.0f} deg/s", fontsize=11)
+        ax.set_title(f"{velocity:.0f} deg/s")
         ax.set_xticks(x_positions, [_display_sdr_label(label) for label in sdr_labels])
         ax.set_ylim(0.0, 1.05)
-        ax.grid(True, color="#dddddd", linewidth=0.7)
-        ax.set_xlabel("separator SDR (dB)")
+        ax.set_xlabel("separator setting")
         if index == 0:
-            ax.set_ylabel("TIR retention fraction")
+            ax.set_ylabel("fraction of ideal Delta TIR retained")
         if index == len(velocities) - 1:
             ax.legend(title="sigma", frameon=False, fontsize=8)
-    fig.suptitle("TIR retention as separator SDR degrades", fontsize=13, fontweight="bold")
-    fig.savefig(envelope_png, dpi=220)
+    fig.suptitle("Fraction of ideal Delta TIR retained as separation improves")
+    fig.savefig(envelope_png)
     fig.savefig(envelope_svg)
     plt.close(fig)
 
@@ -598,7 +597,7 @@ def write_separator_figures(
         ]
         delay_baseline = {
             str(row["separator_sdr_label"]): {
-                "tir": max(0.0, -float(row["tir_loss_vs_ideal_db_mean"])),
+                "tir": -float(row["tir_loss_vs_ideal_db_mean"]),
                 "si_sdr": max(0.0, -float(row["si_sdr_loss_vs_ideal_db_mean"])),
             }
             for row in rows
@@ -614,7 +613,7 @@ def write_separator_figures(
             x = [float(row["source_estimate_delay_ms"]) for row in sdr_rows]
             baseline = delay_baseline[str(sdr_label)]
             tir_loss = [
-                max(0.0, max(0.0, -float(row["tir_loss_vs_ideal_db_mean"])) - baseline["tir"])
+                -float(row["tir_loss_vs_ideal_db_mean"]) - baseline["tir"]
                 for row in sdr_rows
             ]
             physical_si_sdr_loss = [
@@ -633,29 +632,57 @@ def write_separator_figures(
                 markersize=3.0,
                 label=label,
             )
-        axes[0, column].set_title(f"{velocity:.0f} deg/s", fontsize=11)
+        axes[0, column].set_title(f"{velocity:.0f} deg/s")
+        axes[0, column].axhline(0.0, color="#555555", linestyle=":", linewidth=0.9)
         for row_index in (0, 1):
             axes[row_index, column].set_xticks(source_delays, [f"{delay:.0f}" for delay in source_delays])
-            axes[row_index, column].grid(True, color="#dddddd", linewidth=0.7)
             axes[row_index, column].set_xlabel("source-estimate delay (ms)")
         if column == 0:
-            axes[0, column].set_ylabel("additional TIR loss (dB)")
+            axes[0, column].set_ylabel("Delta TIR loss vs 0 ms (dB)")
             axes[1, column].set_ylabel("additional physical SI-SDR loss (dB)")
         if column == len(velocities) - 1:
-            axes[0, column].legend(title="separator SDR", frameon=False, fontsize=8)
-    tir_ymax = max(0.1, max(plotted_tir_losses) * 1.08)
+            axes[0, column].legend(title="separator setting", frameon=False, fontsize=8)
+    tir_abs_max = max(0.1, max(abs(value) for value in plotted_tir_losses) * 1.12)
     si_sdr_ymax = max(0.1, max(plotted_si_sdr_losses) * 1.08)
     for column in range(len(velocities)):
-        axes[0, column].set_ylim(0.0, tir_ymax)
+        axes[0, column].set_ylim(-tir_abs_max, tir_abs_max)
         axes[1, column].set_ylim(0.0, si_sdr_ymax)
     fig.suptitle(
-        f"Additional loss from source-estimate delay, sigma={representative_sigma:.0f} deg",
-        fontsize=13,
-        fontweight="bold",
+        f"Source-estimate delay diagnostics, sigma={representative_sigma:.0f} deg",
     )
-    fig.savefig(source_delay_png, dpi=220)
+    fig.savefig(source_delay_png)
     fig.savefig(source_delay_svg)
     plt.close(fig)
+
+
+def _configure_separator_plot_style(plt) -> None:
+    try:
+        import seaborn as sns
+
+        sns.set_theme(context="paper", style="whitegrid", font="DejaVu Sans")
+    except ImportError:
+        try:
+            plt.style.use("seaborn-v0_8-whitegrid")
+        except OSError:
+            plt.style.use("default")
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 8.6,
+            "axes.titlesize": 9.6,
+            "axes.labelsize": 8.8,
+            "xtick.labelsize": 8.0,
+            "ytick.labelsize": 8.0,
+            "legend.fontsize": 7.6,
+            "legend.title_fontsize": 7.8,
+            "figure.titlesize": 12.0,
+            "figure.dpi": 140,
+            "savefig.dpi": 300,
+            "axes.linewidth": 0.8,
+            "grid.linewidth": 0.55,
+            "svg.fonttype": "none",
+        }
+    )
 
 
 def _summary_markdown(
@@ -708,7 +735,7 @@ def _summary_markdown(
         "",
         "`xhat_b = delay(x_b) + kappa * delay(x_a)`",
         "",
-        "`kappa = 10 ** (-separator_sdr_db / 20)`; `separator_sdr_db = inf` gives `kappa = 0`.",
+        "`kappa = 10 ** (-separator_sdr_db / 20)` for finite SDR values. `separator_sdr_db = inf` gives `kappa = 0`, meaning the ideal no-leakage separator. Figures display this condition as `ideal`; it is not a finite SDR greater than 20 dB.",
         "",
         "The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis and uses the same delay values as Experiment 4.",
         "",
@@ -746,9 +773,9 @@ def _summary_markdown(
             "",
             "## Requirement Envelope",
             "",
-            "The table reports the lowest separator SDR that satisfies both criteria for each condition:",
+            "The table reports the lowest separator setting that satisfies both criteria for each condition:",
             "",
-            f"- TIR retention >= {float(config.get('requirements', {}).get('tir_retention_fraction', 0.90)):.2f} of the ideal condition;",
+            f"- TIR retention >= {float(config.get('requirements', {}).get('tir_retention_fraction', 0.90)):.2f} of the ideal condition, where `tir_retention_fraction = condition Delta TIR / ideal Delta TIR`;",
             f"- component SI-SDR loss <= {float(config.get('requirements', {}).get('max_component_si_sdr_loss_db', 1.0)):.2f} dB relative to the ideal condition.",
             "",
         ]
@@ -779,8 +806,9 @@ def _summary_markdown(
             "- The main degradation axis in this experiment is separator SDR, not source-estimate delay. A common delay applied to both source estimates changes absolute timing, but it has little effect on TIR because target and interference are delayed together.",
         "- Increasing leakage raises the residual contribution of the non-target source inside each separated estimate.",
         "- Increasing source-estimate delay shifts both separated source images relative to the physical target reference; this is mainly visible in the physical-target SI-SDR diagnostic columns.",
-            "- The source-delay impact figure separates these effects: the upper row shows additional TIR loss relative to the 0 ms source-delay case, while the lower row shows the additional latency penalty against the non-delayed physical target.",
-        "- The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.",
+            "- The source-delay impact figure separates these effects: the upper row shows the signed TIR-loss change relative to the 0 ms source-delay case, while the lower row shows the additional latency penalty against the non-delayed physical target.",
+            "- The signed TIR-loss change can be slightly negative because source delay is applied to target and interference together and the metric is evaluated in a finite post-switch window.",
+            "- The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.",
         ]
     )
     return "\n".join(lines)
@@ -816,7 +844,7 @@ def _separator_matrix_sections(
             [
                 f"### {velocity:.0f} deg/s",
                 "",
-                "| Separator SDR (dB) | "
+                "| Separator setting | "
                 + " | ".join(f"{delay:.0f} ms" for delay in source_delays)
                 + " |",
                 "|---:|" + "|".join("---:" for _ in source_delays) + "|",
@@ -934,11 +962,11 @@ def _sdr_label(value: float | str) -> str:
 
 
 def _sdr_sort_value(label: str) -> float:
-    return float("inf") if str(label) == "inf" else float(label)
+    return float("inf") if str(label) in {"inf", "ideal"} else float(label)
 
 
 def _display_sdr_label(label: str) -> str:
-    return "inf" if str(label) == "inf" else str(label)
+    return "ideal" if str(label) in {"inf", "ideal"} else str(label)
 
 
 def _requirement_plot_value(label: str) -> float:
@@ -946,7 +974,7 @@ def _requirement_plot_value(label: str) -> float:
         return 30.0
     if label.startswith(">"):
         return min(float(label[1:]) + 5.0, 25.0)
-    if label == "inf":
+    if label in {"inf", "ideal"}:
         return 20.0
     return float(label)
 
@@ -955,8 +983,8 @@ def _requirement_label(row: dict | None, max_finite_sdr: float) -> str:
     if row is None:
         return "not_met"
     label = str(row["separator_sdr_label"])
-    if label == "inf" and math.isfinite(max_finite_sdr):
-        return f">{max_finite_sdr:g}"
+    if label == "inf":
+        return "ideal"
     return label
 
 

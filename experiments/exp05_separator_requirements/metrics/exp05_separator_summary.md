@@ -27,7 +27,7 @@ Source azimuths are `-30 deg` and `+30 deg`; the earlier `45 deg` protocol is no
 
 `xhat_b = delay(x_b) + kappa * delay(x_a)`
 
-`kappa = 10 ** (-separator_sdr_db / 20)`; `separator_sdr_db = inf` gives `kappa = 0`.
+`kappa = 10 ** (-separator_sdr_db / 20)` for finite SDR values. `separator_sdr_db = inf` gives `kappa = 0`, meaning the ideal no-leakage separator. Figures display this condition as `ideal`; it is not a finite SDR greater than 20 dB.
 
 The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis and uses the same delay values as Experiment 4.
 
@@ -57,71 +57,71 @@ Mean dB loss relative to the ideal zero-delay, no-leakage separator, for `sigma=
 
 ### 30 deg/s
 
-| Separator SDR (dB) | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
+| Separator setting | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
 |---:|---:|---:|---:|---:|---:|---:|---:|
 | 0 | 7.18 | 7.17 | 7.16 | 7.18 | 7.19 | 7.22 | 7.30 |
 | 5 | 5.26 | 5.24 | 5.23 | 5.25 | 5.25 | 5.27 | 5.34 |
 | 10 | 3.59 | 3.57 | 3.55 | 3.56 | 3.55 | 3.56 | 3.63 |
 | 20 | 1.40 | 1.38 | 1.36 | 1.37 | 1.34 | 1.33 | 1.38 |
-| inf | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| ideal | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
 
 ### 60 deg/s
 
-| Separator SDR (dB) | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
+| Separator setting | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
 |---:|---:|---:|---:|---:|---:|---:|---:|
 | 0 | 8.80 | 8.78 | 8.78 | 8.81 | 8.85 | 8.90 | 8.84 |
 | 5 | 6.50 | 6.49 | 6.49 | 6.52 | 6.56 | 6.61 | 6.54 |
 | 10 | 4.48 | 4.47 | 4.47 | 4.51 | 4.55 | 4.59 | 4.52 |
 | 20 | 1.79 | 1.78 | 1.79 | 1.84 | 1.88 | 1.92 | 1.84 |
-| inf | 0.00 | 0.00 | 0.02 | 0.08 | 0.11 | 0.15 | 0.06 |
+| ideal | 0.00 | 0.00 | 0.02 | 0.08 | 0.11 | 0.15 | 0.06 |
 
 ### 120 deg/s
 
-| Separator SDR (dB) | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
+| Separator setting | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
 |---:|---:|---:|---:|---:|---:|---:|---:|
 | 0 | 9.33 | 9.27 | 9.24 | 9.25 | 9.31 | 9.36 | 9.39 |
 | 5 | 6.91 | 6.86 | 6.83 | 6.86 | 6.91 | 6.97 | 7.00 |
 | 10 | 4.78 | 4.72 | 4.71 | 4.74 | 4.81 | 4.86 | 4.89 |
 | 20 | 1.92 | 1.87 | 1.86 | 1.92 | 1.99 | 2.04 | 2.07 |
-| inf | 0.00 | 0.00 | 0.00 | 0.04 | 0.11 | 0.15 | 0.19 |
+| ideal | 0.00 | 0.00 | 0.00 | 0.04 | 0.11 | 0.15 | 0.19 |
 
 
 ## Requirement Envelope
 
-The table reports the lowest separator SDR that satisfies both criteria for each condition:
+The table reports the lowest separator setting that satisfies both criteria for each condition:
 
-- TIR retention >= 0.90 of the ideal condition;
+- TIR retention >= 0.90 of the ideal condition, where `tir_retention_fraction = condition Delta TIR / ideal Delta TIR`;
 - component SI-SDR loss <= 1.00 dB relative to the ideal condition.
 
 ### 30 deg/s
 
 | Sigma (deg) | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 10 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 20 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 30 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 45 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 60 | >20 | >20 | >20 | >20 | not_met | not_met | not_met |
+| 10 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 20 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 30 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 45 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 60 | ideal | ideal | ideal | ideal | not_met | not_met | not_met |
 
 ### 60 deg/s
 
 | Sigma (deg) | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 10 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 20 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 30 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 45 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 60 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
+| 10 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 20 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 30 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 45 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 60 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
 
 ### 120 deg/s
 
 | Sigma (deg) | 0 ms | 20 ms | 40 ms | 80 ms | 120 ms | 160 ms | 200 ms |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 10 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 20 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 30 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 45 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
-| 60 | >20 | >20 | >20 | >20 | >20 | >20 | >20 |
+| 10 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 20 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 30 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 45 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
+| 60 | ideal | ideal | ideal | ideal | ideal | ideal | ideal |
 
 
 ## Largest Losses
@@ -145,5 +145,6 @@ The table reports the lowest separator SDR that satisfies both criteria for each
 - The main degradation axis in this experiment is separator SDR, not source-estimate delay. A common delay applied to both source estimates changes absolute timing, but it has little effect on TIR because target and interference are delayed together.
 - Increasing leakage raises the residual contribution of the non-target source inside each separated estimate.
 - Increasing source-estimate delay shifts both separated source images relative to the physical target reference; this is mainly visible in the physical-target SI-SDR diagnostic columns.
-- The source-delay impact figure separates these effects: the upper row shows additional TIR loss relative to the 0 ms source-delay case, while the lower row shows the additional latency penalty against the non-delayed physical target.
+- The source-delay impact figure separates these effects: the upper row shows the signed TIR-loss change relative to the 0 ms source-delay case, while the lower row shows the additional latency penalty against the non-delayed physical target.
+- The signed TIR-loss change can be slightly negative because source delay is applied to target and interference together and the metric is evaluated in a finite post-switch window.
 - The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.

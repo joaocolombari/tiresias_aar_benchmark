@@ -48,7 +48,9 @@ with:
 kappa = 10 ** (-separator_sdr_db / 20)
 ```
 
-`separator_sdr_db = inf` gives `kappa = 0`, representing an ideal separator.
+`separator_sdr_db = inf` gives `kappa = 0`, representing an ideal no-leakage
+separator. In figures and summary tables this condition is displayed as
+`ideal`; it is not a finite separator SDR greater than 20 dB.
 
 ## Relation To Experiment 4
 
@@ -149,7 +151,8 @@ Important columns:
 - `source_estimate_delay_ms`: delay applied to both source estimates;
 - `tir_improvement_db`: output target-to-interference improvement;
 - `tir_loss_vs_ideal_db`: loss relative to the ideal zero-delay separator;
-- `tir_retention_fraction`: fraction of ideal TIR improvement retained;
+- `tir_retention_fraction`: dimensionless fraction of ideal TIR improvement
+  retained, calculated as `condition Delta TIR / ideal Delta TIR`;
 - `si_sdr_loss_vs_ideal_db`: SI-SDR loss relative to the ideal separator;
 - `component_si_sdr_loss_vs_ideal_db`: SI-SDR loss against the processed target
   component;
@@ -158,7 +161,7 @@ Important columns:
 
 ## Requirement Criterion
 
-The requirement table reports the lowest separator SDR that satisfies both:
+The requirement table reports the lowest separator setting that satisfies both:
 
 ```text
 TIR retention >= 0.90
@@ -187,20 +190,23 @@ representative_source_delay_ms: 0
 `exp05_requirement_envelope` shows TIR retention fraction as separator SDR
 degrades. The dashed horizontal line marks the 90% retention criterion. This is
 the main figure for evaluating how separation degradation impacts final
-enhancement.
+enhancement. A value of `1.0` means the condition retained all TIR improvement
+obtained with the ideal no-leakage separator; `0.9` means it retained 90% of
+that ideal benefit.
 
-`exp05_source_delay_impact` shows the additional impact of source-estimate
-delay for the representative sigma, always relative to the `0 ms` delay case at
-the same separator SDR. The upper row shows additional TIR loss, which remains
-small because both target and interference estimates are delayed together. The
-lower row shows additional physical-target SI-SDR loss, which captures the
-temporal misalignment between a delayed separated reinforcement signal and the
-non-delayed acoustic scene.
+`exp05_source_delay_impact` shows the impact of source-estimate delay for the
+representative sigma, always relative to the `0 ms` delay case at the same
+separator setting. The upper row shows signed TIR-loss change; values near zero
+mean the source delay did not materially change target/interference balance,
+and slightly negative values are possible because the metric is evaluated in a
+finite post-switch window. The lower row shows additional physical-target
+SI-SDR loss, which captures the temporal misalignment between a delayed
+separated reinforcement signal and the non-delayed acoustic scene.
 
-If the requirement table reports `>20`, the finite separator SDR values tested
-up to 20 dB did not satisfy the criterion, but the ideal no-leakage condition
-did. If it reports `not_met`, even the no-leakage condition failed under that
-delay and sigma.
+If the requirement table reports `ideal`, the finite separator SDR values
+tested up to 20 dB did not satisfy the criterion, but the ideal no-leakage
+condition did. If it reports `not_met`, even the no-leakage condition failed
+under that delay and sigma.
 
 ## Interpretation Notes
 

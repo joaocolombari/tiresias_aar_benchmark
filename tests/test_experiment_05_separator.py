@@ -100,6 +100,45 @@ class Experiment05SeparatorTests(unittest.TestCase):
         self.assertEqual(requirements[0]["minimum_separator_sdr_label"], "10")
         self.assertTrue(requirements[0]["acceptable"])
 
+    def test_requirement_rows_label_ideal_no_leakage_separator_explicitly(self):
+        rows = []
+        for label, retention, sisdr_loss in [
+            ("0", 0.20, -4.0),
+            ("5", 0.45, -3.0),
+            ("10", 0.70, -2.0),
+            ("20", 0.88, -1.2),
+            ("inf", 1.00, 0.0),
+        ]:
+            rows.append(
+                {
+                    "trajectory": "30_deg_s",
+                    "angular_velocity_deg_s": 30.0,
+                    "sigma_deg": 20.0,
+                    "orientation_delay_ms": 0.0,
+                    "source_estimate_delay_ms": 80.0,
+                    "source_delay_angular_lag_deg": 2.4,
+                    "separator_sdr_db": label,
+                    "separator_sdr_label": label,
+                    "tir_retention_fraction_mean": retention,
+                    "tir_loss_vs_ideal_db_mean": -1.0,
+                    "si_sdr_loss_vs_ideal_db_mean": sisdr_loss,
+                    "component_si_sdr_loss_vs_ideal_db_mean": sisdr_loss,
+                }
+            )
+
+        requirements = compute_requirement_rows(
+            rows,
+            {
+                "requirements": {
+                    "tir_retention_fraction": 0.90,
+                    "max_si_sdr_loss_db": 1.0,
+                }
+            },
+        )
+
+        self.assertEqual(requirements[0]["minimum_separator_sdr_label"], "ideal")
+        self.assertTrue(requirements[0]["acceptable"])
+
 
 if __name__ == "__main__":
     unittest.main()

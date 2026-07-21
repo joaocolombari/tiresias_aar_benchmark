@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Global sigma ranking from target-side angular mean $\Delta$TIR. The score is the lower bound of the pair-bootstrap 95\% confidence interval.}
+\label{tab:exp03_sigma_ranking}
+\begin{tabular}{rrrrrrrr}
+\toprule
+Rank & $\sigma$ (deg) & Mean & 95\% CI & Score & P10 & Positive pairs & Tie \\
+\midrule
+1 & 30 & 5.47 & [5.47, 5.47] & 5.47 & 5.47 & 100\% & yes \\
+2 & 45 & 5.08 & [5.08, 5.08] & 5.08 & 5.08 & 100\% & no \\
+3 & 20 & 4.77 & [4.77, 4.77] & 4.77 & 4.77 & 100\% & no \\
+4 & 60 & 4.11 & [4.11, 4.11] & 4.11 & 4.11 & 100\% & no \\
+5 & 10 & 2.77 & [2.77, 2.77] & 2.77 & 2.77 & 100\% & no \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize Tie indicates practical equivalence to the nominal winner: mean difference $< 0.5$ dB and overlapping 95\% confidence intervals.
+\end{table}

@@ -537,6 +537,8 @@ def write_latency_figures(
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    _configure_latency_plot_style(plt)
+
     velocities = sorted({float(row["angular_velocity_deg_s"]) for row in summary_rows})
     delays = sorted({float(row["orientation_delay_ms"]) for row in summary_rows})
     sigmas = sorted({float(row["sigma_deg"]) for row in summary_rows})
@@ -596,6 +598,74 @@ def write_latency_figures(
     fig.savefig(trace_png, dpi=220)
     fig.savefig(trace_svg)
     plt.close(fig)
+
+
+def build_representative_trace_rows(config: dict) -> list[dict]:
+    sources = {item["name"]: float(item["azimuth_deg"]) for item in config["sources"]}
+    source_a_angle = sources.get("source_a", -30.0)
+    source_b_angle = sources.get("source_b", 30.0)
+    sigma_f = float(config.get("trace_sigma_deg", 20.0))
+    velocity_f = float(config.get("trace_velocity_deg_s", max(config["angular_velocity_deg_s"])))
+    bmax_db = float(config.get("bmax_db", 10.0))
+    trace_delay_ms = {float(item) for item in config.get("trace_delay_ms", [0, 80, 160, 200])}
+    rows: list[dict] = []
+    for trajectory in build_trajectories(config):
+        if trajectory.velocity_deg_s != velocity_f:
+            continue
+        for delay_f in sorted(trace_delay_ms):
+            delayed_yaw = delayed_yaw_series(
+                trajectory.time_s,
+                trajectory.yaw_deg,
+                delay_f,
+                mode=str(config.get("delay_mode", "hold")),
+            )
+            gain_a_db, gain_b_db = attention_gain_db_series(
+                delayed_yaw,
+                source_a_angle,
+                source_b_angle,
+                sigma_f,
+                bmax_db,
+            )
+            ratio_db = gain_b_db - gain_a_db
+            for time_s, ratio in zip(trajectory.time_s, ratio_db):
+                rows.append(
+                    {
+                        "time_from_switch_s": float(time_s - trajectory.switch_time_s),
+                        "orientation_delay_ms": delay_f,
+                        "gain_ratio_b_over_a_db": float(ratio),
+                        "sigma_deg": sigma_f,
+                        "angular_velocity_deg_s": trajectory.velocity_deg_s,
+                    }
+                )
+    return rows
+
+
+def _configure_latency_plot_style(plt) -> None:
+    try:
+        import seaborn as sns
+
+        sns.set_theme(context="paper", style="whitegrid", font="DejaVu Sans")
+    except ImportError:
+        try:
+            plt.style.use("seaborn-v0_8-whitegrid")
+        except OSError:
+            plt.style.use("default")
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 8.6,
+            "axes.titlesize": 9.5,
+            "axes.labelsize": 8.6,
+            "axes.titleweight": "bold",
+            "xtick.labelsize": 7.6,
+            "ytick.labelsize": 7.6,
+            "legend.fontsize": 7.6,
+            "legend.title_fontsize": 7.8,
+            "figure.titlesize": 11,
+            "svg.fonttype": "none",
+            "savefig.dpi": 300,
+        }
+    )
 
 
 def _summary_markdown(summary: dict, summary_rows: list[dict]) -> str:

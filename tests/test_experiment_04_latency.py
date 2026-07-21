@@ -7,6 +7,7 @@ import numpy as np
 
 from tiresias_benchmark.experiments.experiment_04 import (
     attention_gain_db_series,
+    build_representative_trace_rows,
     build_trajectories,
     interpolate_brir_images,
     select_speech_pairs,
@@ -104,6 +105,30 @@ class Experiment04LatencyTests(unittest.TestCase):
 
         self.assertEqual(len(pairs), 1)
         self.assertNotEqual(pairs[0].source_a.speaker_id, pairs[0].source_b.speaker_id)
+
+    def test_representative_trace_rows_are_rebuilt_from_control_config(self):
+        rows = build_representative_trace_rows(
+            {
+                "sources": [
+                    {"name": "source_a", "azimuth_deg": -30},
+                    {"name": "source_b", "azimuth_deg": 30},
+                ],
+                "angular_velocity_deg_s": [60, 120],
+                "trace_velocity_deg_s": 120,
+                "trace_sigma_deg": 20,
+                "trace_delay_ms": [0, 80],
+                "control_sample_rate_hz": 20,
+                "start_yaw_deg": -30,
+                "stop_yaw_deg": 30,
+                "hold_before_s": 0.2,
+                "hold_after_s": 0.2,
+                "bmax_db": 10,
+            }
+        )
+
+        self.assertTrue(rows)
+        self.assertEqual({row["orientation_delay_ms"] for row in rows}, {0.0, 80.0})
+        self.assertEqual({row["angular_velocity_deg_s"] for row in rows}, {120.0})
 
 
 if __name__ == "__main__":
