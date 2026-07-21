@@ -25945,10 +25945,7 @@
       "stoi_vs_ideal_output_median": 0.9331894911442388,
       "stoi_loss_vs_ideal_output_mean": 0.062107828973287094,
       "stoi_loss_vs_ideal_output_sd": 0.031400379487371094,
-      "stoi_loss_vs_ideal_output_median": 0.06681050885576123,
-      "si_sdr_vs_ideal_output_db_mean": 10.91837337984818,
-      "si_sdr_vs_ideal_output_db_sd": 4.282994600708215,
-      "si_sdr_vs_ideal_output_db_median": 9.54359234109255
+      "stoi_loss_vs_ideal_output_median": 0.06681050885576123
     },
     {
       "trajectory": "30_deg_s",
@@ -25969,10 +25966,7 @@
       "stoi_vs_ideal_output_median": 0.9691489857912328,
       "stoi_loss_vs_ideal_output_mean": 0.029332928481153115,
       "stoi_loss_vs_ideal_output_sd": 0.015315528681042693,
-      "stoi_loss_vs_ideal_output_median": 0.03085101420876729,
-      "si_sdr_vs_ideal_output_db_mean": 14.751500648539453,
-      "si_sdr_vs_ideal_output_db_sd": 4.399750266157163,
-      "si_sdr_vs_ideal_output_db_median": 13.488982629486177
+      "stoi_loss_vs_ideal_output_median": 0.03085101420876729
     },
     {
       "trajectory": "30_deg_s",
@@ -25993,10 +25987,7 @@
       "stoi_vs_ideal_output_median": 0.9870367040613378,
       "stoi_loss_vs_ideal_output_mean": 0.012134029569178783,
       "stoi_loss_vs_ideal_output_sd": 0.006473808944896585,
-      "stoi_loss_vs_ideal_output_median": 0.01296329593866219,
-      "si_sdr_vs_ideal_output_db_mean": 18.996470388579908,
-      "si_sdr_vs_ideal_output_db_sd": 4.505143360832248,
-      "si_sdr_vs_ideal_output_db_median": 17.8143958908348
+      "stoi_loss_vs_ideal_output_median": 0.01296329593866219
     },
     {
       "trajectory": "30_deg_s",
@@ -26017,10 +26008,7 @@
       "stoi_vs_ideal_output_median": 0.998348251213828,
       "stoi_loss_vs_ideal_output_mean": 0.0015901463119772574,
       "stoi_loss_vs_ideal_output_sd": 0.0008654015653578362,
-      "stoi_loss_vs_ideal_output_median": 0.0016517487861720248,
-      "si_sdr_vs_ideal_output_db_mean": 28.251532574028676,
-      "si_sdr_vs_ideal_output_db_sd": 4.638622586656804,
-      "si_sdr_vs_ideal_output_db_median": 27.12781928970763
+      "stoi_loss_vs_ideal_output_median": 0.0016517487861720248
     },
     {
       "trajectory": "30_deg_s",
@@ -26041,10 +26029,7 @@
       "stoi_vs_ideal_output_median": 1.0,
       "stoi_loss_vs_ideal_output_mean": 0.0,
       "stoi_loss_vs_ideal_output_sd": 0.0,
-      "stoi_loss_vs_ideal_output_median": 0.0,
-      "si_sdr_vs_ideal_output_db_mean": 164.666361404457,
-      "si_sdr_vs_ideal_output_db_sd": 3.3219315517884467,
-      "si_sdr_vs_ideal_output_db_median": 165.09720331437654
+      "stoi_loss_vs_ideal_output_median": 0.0
     },
     {
       "trajectory": "30_deg_s",
@@ -26065,10 +26050,7 @@
       "stoi_vs_ideal_output_median": 0.5932156841059795,
       "stoi_loss_vs_ideal_output_mean": 0.4008186181044528,
       "stoi_loss_vs_ideal_output_sd": 0.06880068180543365,
-      "stoi_loss_vs_ideal_output_median": 0.4067843158940206,
-      "si_sdr_vs_ideal_output_db_mean": -7.433704753150646,
-      "si_sdr_vs_ideal_output_db_sd": 2.210286062383828,
-      "si_sdr_vs_ideal_output_db_median": -7.2603206532142135
+      "stoi_loss_vs_ideal_output_median": 0.4067843158940206
     },
     {
       "trajectory": "30_deg_s",
@@ -26089,10 +26071,7 @@
       "stoi_vs_ideal_output_median": 0.6529414012712433,
       "stoi_loss_vs_ideal_output_mean": 0.34833030407954657,
       "stoi_loss_vs_ideal_output_sd": 0.059326916120060184,
-      "stoi_loss_vs_ideal_output_median": 0.34705859872875666,
-      "si_sdr_vs_ideal_output_db_mean": -5.324438151841902,
-      "si_sdr_vs_ideal_output_db_sd": 2.089491995792363,
-      "si_sdr_vs_ideal_output_db_median": -5.267195822671193
+      "stoi_loss_vs_ideal_output_median": 0.34705859872875666
     },
     {
       "trajectory": "30_deg_s",
@@ -26113,10 +26092,7 @@
       "stoi_vs_ideal_output_median": 0.6943507157875335,
       "stoi_loss_vs_ideal_output_mean": 0.30587995940271734,
       "stoi_loss_vs_ideal_output_sd": 0.060001424529479666,
-      "stoi_loss_vs_ideal_output_median": 0.30564928421246645,
-      "si_sdr_vs_ideal_output_db_mean": -4.012586525882255,
-      "si_sdr_vs_ideal_output_db_sd": 2.4116691137187294,
-      "si_sdr_vs_ideal_output_db_median": -4.228872422763713
+      "stoi_loss_vs_ideal_output_median": 0.30564928421246645
     },
     {
       "trajectory": "30_deg_s",
@@ -26137,10 +26113,7 @@
       "stoi_vs_ideal_output_median": 0.7322551671968276,
       "stoi_loss_vs_ideal_output_mean": 0.2621883551778098,
       "stoi_loss_vs_ideal_output_sd": 0.07273396917269659,
-      "stoi_loss_vs_ideal_output_median": 0.26774483280317246,
-      "si_sdr_vs_ideal_output_db_mean": -2.822649149743292,
-      "si_sdr_vs_ideal_output_db_sd": 3.1250315521744056,
-      "si_sdr_vs_ideal_output_db_median": -3.265115677271403
+      "stoi_loss_vs_ideal_output_median": 0.26774483280317246
     },
     {
       "trajectory": "30_deg_s",
@@ -26161,10 +26134,7 @@
       "stoi_vs_ideal_output_median": 0.7515417810601974,
       "stoi_loss_vs_ideal_output_mean": 0.2455530818727877,
       "stoi_loss_vs_ideal_output_sd": 0.07973159110076619,
-      "stoi_loss_vs_ideal_output_median": 0.24845821893980252,
-      "si_sdr_vs_ideal_output_db_mean": -2.274633545956368,
-      "si_sdr_vs_ideal_output_db_sd": 3.7222629585533067,
-      "si_sdr_vs_ideal_output_db_median": -2.828009698046908
+      "stoi_loss_vs_ideal_output_median": 0.24845821893980252
     },
     {
       "trajectory": "30_deg_s",
@@ -26185,10 +26155,7 @@
       "stoi_vs_ideal_output_median": 0.4245675019351829,
       "stoi_loss_vs_ideal_output_mean": 0.55693015685231,
       "stoi_loss_vs_ideal_output_sd": 0.09055710385460486,
-      "stoi_loss_vs_ideal_output_median": 0.5754324980648171,
-      "si_sdr_vs_ideal_output_db_mean": -9.436093139987364,
-      "si_sdr_vs_ideal_output_db_sd": 4.62935793576227,
-      "si_sdr_vs_ideal_output_db_median": -8.42708911775902
+      "stoi_loss_vs_ideal_output_median": 0.5754324980648171
     },
     {
       "trajectory": "30_deg_s",
@@ -26209,10 +26176,7 @@
       "stoi_vs_ideal_output_median": 0.4935479793376658,
       "stoi_loss_vs_ideal_output_mean": 0.4855662150148855,
       "stoi_loss_vs_ideal_output_sd": 0.08629502447554148,
-      "stoi_loss_vs_ideal_output_median": 0.5064520206623342,
-      "si_sdr_vs_ideal_output_db_mean": -7.470956287845244,
-      "si_sdr_vs_ideal_output_db_sd": 5.127625110208533,
-      "si_sdr_vs_ideal_output_db_median": -6.486439740110179
+      "stoi_loss_vs_ideal_output_median": 0.5064520206623342
     },
     {
       "trajectory": "30_deg_s",
@@ -26233,10 +26197,7 @@
       "stoi_vs_ideal_output_median": 0.5535113616977936,
       "stoi_loss_vs_ideal_output_mean": 0.42763157048966055,
       "stoi_loss_vs_ideal_output_sd": 0.09543196891326834,
-      "stoi_loss_vs_ideal_output_median": 0.44648863830220636,
-      "si_sdr_vs_ideal_output_db_mean": -6.00744251547713,
-      "si_sdr_vs_ideal_output_db_sd": 4.945061494532552,
-      "si_sdr_vs_ideal_output_db_median": -5.165824830495856
+      "stoi_loss_vs_ideal_output_median": 0.44648863830220636
     },
     {
       "trajectory": "30_deg_s",
@@ -26257,10 +26218,7 @@
       "stoi_vs_ideal_output_median": 0.6081524857204197,
       "stoi_loss_vs_ideal_output_mean": 0.37327593073765913,
       "stoi_loss_vs_ideal_output_sd": 0.114315730075077,
-      "stoi_loss_vs_ideal_output_median": 0.3918475142795803,
-      "si_sdr_vs_ideal_output_db_mean": -4.5647472019627475,
-      "si_sdr_vs_ideal_output_db_sd": 4.5802650455593,
-      "si_sdr_vs_ideal_output_db_median": -4.136134517927875
+      "stoi_loss_vs_ideal_output_median": 0.3918475142795803
     },
     {
       "trajectory": "30_deg_s",
@@ -26281,10 +26239,7 @@
       "stoi_vs_ideal_output_median": 0.6265489611628086,
       "stoi_loss_vs_ideal_output_mean": 0.35361177915996234,
       "stoi_loss_vs_ideal_output_sd": 0.12182164097713664,
-      "stoi_loss_vs_ideal_output_median": 0.3734510388371915,
-      "si_sdr_vs_ideal_output_db_mean": -3.9533456191212473,
-      "si_sdr_vs_ideal_output_db_sd": 4.948193730064832,
-      "si_sdr_vs_ideal_output_db_median": -3.789317873281588
+      "stoi_loss_vs_ideal_output_median": 0.3734510388371915
     },
     {
       "trajectory": "30_deg_s",
@@ -26305,10 +26260,7 @@
       "stoi_vs_ideal_output_median": 0.2859042379666672,
       "stoi_loss_vs_ideal_output_mean": 0.6908109361783612,
       "stoi_loss_vs_ideal_output_sd": 0.1076949000754715,
-      "stoi_loss_vs_ideal_output_median": 0.7140957620333328,
-      "si_sdr_vs_ideal_output_db_mean": -6.683555901952057,
-      "si_sdr_vs_ideal_output_db_sd": 1.7065755611165567,
-      "si_sdr_vs_ideal_output_db_median": -6.827630530940441
+      "stoi_loss_vs_ideal_output_median": 0.7140957620333328
     },
     {
       "trajectory": "30_deg_s",
@@ -26329,10 +26281,7 @@
       "stoi_vs_ideal_output_median": 0.372231271725948,
       "stoi_loss_vs_ideal_output_mean": 0.6034688546556476,
       "stoi_loss_vs_ideal_output_sd": 0.10477709859711129,
-      "stoi_loss_vs_ideal_output_median": 0.6277687282740521,
-      "si_sdr_vs_ideal_output_db_mean": -4.8066048339712575,
-      "si_sdr_vs_ideal_output_db_sd": 1.749645438168126,
-      "si_sdr_vs_ideal_output_db_median": -5.0022759696001895
+      "stoi_loss_vs_ideal_output_median": 0.6277687282740521
     },
     {
       "trajectory": "30_deg_s",
@@ -26353,10 +26302,7 @@
       "stoi_vs_ideal_output_median": 0.4405902370690087,
       "stoi_loss_vs_ideal_output_mean": 0.5298370512188648,
       "stoi_loss_vs_ideal_output_sd": 0.12021098539371625,
-      "stoi_loss_vs_ideal_output_median": 0.5594097629309913,
-      "si_sdr_vs_ideal_output_db_mean": -3.6129758572586135,
-      "si_sdr_vs_ideal_output_db_sd": 2.140850526345636,
-      "si_sdr_vs_ideal_output_db_median": -3.873839948343379
+      "stoi_loss_vs_ideal_output_median": 0.5594097629309913
     },
     {
       "trajectory": "30_deg_s",
@@ -26377,10 +26323,7 @@
       "stoi_vs_ideal_output_median": 0.5125742186987341,
       "stoi_loss_vs_ideal_output_mean": 0.46284595968736914,
       "stoi_loss_vs_ideal_output_sd": 0.14681184941116918,
-      "stoi_loss_vs_ideal_output_median": 0.48742578130126596,
-      "si_sdr_vs_ideal_output_db_mean": -2.5159689034968387,
-      "si_sdr_vs_ideal_output_db_sd": 2.9033945897779105,
-      "si_sdr_vs_ideal_output_db_median": -2.963368014274638
+      "stoi_loss_vs_ideal_output_median": 0.48742578130126596
     },
     {
       "trajectory": "30_deg_s",
@@ -26401,10 +26344,7 @@
       "stoi_vs_ideal_output_median": 0.5388924902102067,
       "stoi_loss_vs_ideal_output_mean": 0.4397057873805345,
       "stoi_loss_vs_ideal_output_sd": 0.15620170638707703,
-      "stoi_loss_vs_ideal_output_median": 0.4611075097897933,
-      "si_sdr_vs_ideal_output_db_mean": -2.014500709937825,
-      "si_sdr_vs_ideal_output_db_sd": 3.4855929412248865,
-      "si_sdr_vs_ideal_output_db_median": -2.544521217245437
+      "stoi_loss_vs_ideal_output_median": 0.4611075097897933
     },
     {
       "trajectory": "30_deg_s",
@@ -26425,10 +26365,7 @@
       "stoi_vs_ideal_output_median": 0.21671544025634976,
       "stoi_loss_vs_ideal_output_mean": 0.7610495943394996,
       "stoi_loss_vs_ideal_output_sd": 0.11667410432128966,
-      "stoi_loss_vs_ideal_output_median": 0.7832845597436502,
-      "si_sdr_vs_ideal_output_db_mean": -8.160558998126387,
-      "si_sdr_vs_ideal_output_db_sd": 2.3553522777214835,
-      "si_sdr_vs_ideal_output_db_median": -7.739548227285487
+      "stoi_loss_vs_ideal_output_median": 0.7832845597436502
     },
     {
       "trajectory": "30_deg_s",
@@ -26449,10 +26386,7 @@
       "stoi_vs_ideal_output_median": 0.3060483234906105,
       "stoi_loss_vs_ideal_output_mean": 0.6697128298025059,
       "stoi_loss_vs_ideal_output_sd": 0.11760790080728101,
-      "stoi_loss_vs_ideal_output_median": 0.6939516765093895,
-      "si_sdr_vs_ideal_output_db_mean": -6.281090526710426,
-      "si_sdr_vs_ideal_output_db_sd": 3.2528630500779494,
-      "si_sdr_vs_ideal_output_db_median": -5.820492779622919
+      "stoi_loss_vs_ideal_output_median": 0.6939516765093895
     },
     {
       "trajectory": "30_deg_s",
@@ -26473,10 +26407,7 @@
       "stoi_vs_ideal_output_median": 0.37695266675426403,
       "stoi_loss_vs_ideal_output_mean": 0.5922126797892242,
       "stoi_loss_vs_ideal_output_sd": 0.13628117366791326,
-      "stoi_loss_vs_ideal_output_median": 0.623047333245736,
-      "si_sdr_vs_ideal_output_db_mean": -4.989379017837213,
-      "si_sdr_vs_ideal_output_db_sd": 3.3225567765997415,
-      "si_sdr_vs_ideal_output_db_median": -4.916896557923273
+      "stoi_loss_vs_ideal_output_median": 0.623047333245736
     },
     {
       "trajectory": "30_deg_s",
@@ -26497,10 +26428,7 @@
       "stoi_vs_ideal_output_median": 0.4448754851597326,
       "stoi_loss_vs_ideal_output_mean": 0.5216663523323216,
       "stoi_loss_vs_ideal_output_sd": 0.16495979347785292,
-      "stoi_loss_vs_ideal_output_median": 0.5551245148402675,
-      "si_sdr_vs_ideal_output_db_mean": -3.7790662497543024,
-      "si_sdr_vs_ideal_output_db_sd": 3.6409046857452485,
-      "si_sdr_vs_ideal_output_db_median": -4.12572645251612
+      "stoi_loss_vs_ideal_output_median": 0.5551245148402675
     },
     {
       "trajectory": "30_deg_s",
@@ -26521,10 +26449,7 @@
       "stoi_vs_ideal_output_median": 0.4667986317124509,
       "stoi_loss_vs_ideal_output_mean": 0.4973236634774357,
       "stoi_loss_vs_ideal_output_sd": 0.17502055039018408,
-      "stoi_loss_vs_ideal_output_median": 0.5332013682875492,
-      "si_sdr_vs_ideal_output_db_mean": -3.194160213878751,
-      "si_sdr_vs_ideal_output_db_sd": 3.833617865749152,
-      "si_sdr_vs_ideal_output_db_median": -3.7810988751405743
+      "stoi_loss_vs_ideal_output_median": 0.5332013682875492
     },
     {
       "trajectory": "30_deg_s",
@@ -26545,10 +26470,7 @@
       "stoi_vs_ideal_output_median": 0.20126047123983148,
       "stoi_loss_vs_ideal_output_mean": 0.7790786976593141,
       "stoi_loss_vs_ideal_output_sd": 0.11041253647118503,
-      "stoi_loss_vs_ideal_output_median": 0.7987395287601685,
-      "si_sdr_vs_ideal_output_db_mean": -7.361119879827643,
-      "si_sdr_vs_ideal_output_db_sd": 1.5835684717377818,
-      "si_sdr_vs_ideal_output_db_median": -7.584099447296518
+      "stoi_loss_vs_ideal_output_median": 0.7987395287601685
     },
     {
       "trajectory": "30_deg_s",
@@ -26569,10 +26491,7 @@
       "stoi_vs_ideal_output_median": 0.2822761934731197,
       "stoi_loss_vs_ideal_output_mean": 0.6899365514485806,
       "stoi_loss_vs_ideal_output_sd": 0.11138010203534078,
-      "stoi_loss_vs_ideal_output_median": 0.7177238065268803,
-      "si_sdr_vs_ideal_output_db_mean": -5.3890554515321325,
-      "si_sdr_vs_ideal_output_db_sd": 1.6209790956100296,
-      "si_sdr_vs_ideal_output_db_median": -5.547289810742987
+      "stoi_loss_vs_ideal_output_median": 0.7177238065268803
     },
     {
       "trajectory": "30_deg_s",
@@ -26593,10 +26512,7 @@
       "stoi_vs_ideal_output_median": 0.3648156664453139,
       "stoi_loss_vs_ideal_output_mean": 0.612987417478814,
       "stoi_loss_vs_ideal_output_sd": 0.13132807994794826,
-      "stoi_loss_vs_ideal_output_median": 0.6351843335546861,
-      "si_sdr_vs_ideal_output_db_mean": -4.15723292744512,
-      "si_sdr_vs_ideal_output_db_sd": 2.0162047441447446,
-      "si_sdr_vs_ideal_output_db_median": -4.381065683824422
+      "stoi_loss_vs_ideal_output_median": 0.6351843335546861
     },
     {
       "trajectory": "30_deg_s",
@@ -26617,10 +26533,7 @@
       "stoi_vs_ideal_output_median": 0.4185438394685198,
       "stoi_loss_vs_ideal_output_mean": 0.541551849348402,
       "stoi_loss_vs_ideal_output_sd": 0.16178609409523492,
-      "stoi_loss_vs_ideal_output_median": 0.5814561605314802,
-      "si_sdr_vs_ideal_output_db_mean": -3.0512130889162483,
-      "si_sdr_vs_ideal_output_db_sd": 2.750054866354116,
-      "si_sdr_vs_ideal_output_db_median": -3.345911455045627
+      "stoi_loss_vs_ideal_output_median": 0.5814561605314802
     },
     {
       "trajectory": "30_deg_s",
@@ -26641,10 +26554,7 @@
       "stoi_vs_ideal_output_median": 0.4406940852707411,
       "stoi_loss_vs_ideal_output_mean": 0.5161295017652034,
       "stoi_loss_vs_ideal_output_sd": 0.17273280916081016,
-      "stoi_loss_vs_ideal_output_median": 0.559305914729259,
-      "si_sdr_vs_ideal_output_db_mean": -2.568769806331125,
-      "si_sdr_vs_ideal_output_db_sd": 3.2426715533737838,
-      "si_sdr_vs_ideal_output_db_median": -3.0293148822615126
+      "stoi_loss_vs_ideal_output_median": 0.559305914729259
     },
     {
       "trajectory": "30_deg_s",
@@ -26665,10 +26575,7 @@
       "stoi_vs_ideal_output_median": 0.20191321639257948,
       "stoi_loss_vs_ideal_output_mean": 0.7769657938406684,
       "stoi_loss_vs_ideal_output_sd": 0.11668011608391628,
-      "stoi_loss_vs_ideal_output_median": 0.7980867836074206,
-      "si_sdr_vs_ideal_output_db_mean": -8.418472419346344,
-      "si_sdr_vs_ideal_output_db_sd": 3.0538100818635625,
-      "si_sdr_vs_ideal_output_db_median": -7.91056241203329
+      "stoi_loss_vs_ideal_output_median": 0.7980867836074206
     },
     {
       "trajectory": "30_deg_s",
@@ -26689,10 +26596,7 @@
       "stoi_vs_ideal_output_median": 0.3008571943051096,
       "stoi_loss_vs_ideal_output_mean": 0.6915741633385565,
       "stoi_loss_vs_ideal_output_sd": 0.11389438750370784,
-      "stoi_loss_vs_ideal_output_median": 0.6991428056948904,
-      "si_sdr_vs_ideal_output_db_mean": -6.218307287485409,
-      "si_sdr_vs_ideal_output_db_sd": 2.81736058575933,
-      "si_sdr_vs_ideal_output_db_median": -5.8614333929339875
+      "stoi_loss_vs_ideal_output_median": 0.6991428056948904
     },
     {
       "trajectory": "30_deg_s",
@@ -26713,10 +26617,7 @@
       "stoi_vs_ideal_output_median": 0.367734217011656,
       "stoi_loss_vs_ideal_output_mean": 0.6177603128946884,
       "stoi_loss_vs_ideal_output_sd": 0.12842851514791495,
-      "stoi_loss_vs_ideal_output_median": 0.632265782988344,
-      "si_sdr_vs_ideal_output_db_mean": -4.938375360055775,
-      "si_sdr_vs_ideal_output_db_sd": 3.3325687617967317,
-      "si_sdr_vs_ideal_output_db_median": -4.638540577537002
+      "stoi_loss_vs_ideal_output_median": 0.632265782988344
     },
     {
       "trajectory": "30_deg_s",
@@ -26737,10 +26638,7 @@
       "stoi_vs_ideal_output_median": 0.41646913836571214,
       "stoi_loss_vs_ideal_output_mean": 0.5468673294882207,
       "stoi_loss_vs_ideal_output_sd": 0.1560162244228838,
-      "stoi_loss_vs_ideal_output_median": 0.5835308616342878,
-      "si_sdr_vs_ideal_output_db_mean": -3.7098684132189974,
-      "si_sdr_vs_ideal_output_db_sd": 3.3908064495064147,
-      "si_sdr_vs_ideal_output_db_median": -3.8858710873659965
+      "stoi_loss_vs_ideal_output_median": 0.5835308616342878
     },
     {
       "trajectory": "30_deg_s",
@@ -26761,10 +26659,7 @@
       "stoi_vs_ideal_output_median": 0.4380395084546807,
       "stoi_loss_vs_ideal_output_mean": 0.5206615450406706,
       "stoi_loss_vs_ideal_output_sd": 0.16735027974515243,
-      "stoi_loss_vs_ideal_output_median": 0.5619604915453194,
-      "si_sdr_vs_ideal_output_db_mean": -3.2259825101191892,
-      "si_sdr_vs_ideal_output_db_sd": 3.761772269823449,
-      "si_sdr_vs_ideal_output_db_median": -3.615863519217739
+      "stoi_loss_vs_ideal_output_median": 0.5619604915453194
     },
     {
       "trajectory": "60_deg_s",
@@ -26785,10 +26680,7 @@
       "stoi_vs_ideal_output_median": 0.9142256758679856,
       "stoi_loss_vs_ideal_output_mean": 0.0870027692689069,
       "stoi_loss_vs_ideal_output_sd": 0.03343596311599779,
-      "stoi_loss_vs_ideal_output_median": 0.0857743241320143,
-      "si_sdr_vs_ideal_output_db_mean": 8.651686951329783,
-      "si_sdr_vs_ideal_output_db_sd": 2.5973854051557717,
-      "si_sdr_vs_ideal_output_db_median": 7.5772876190279215
+      "stoi_loss_vs_ideal_output_median": 0.0857743241320143
     },
     {
       "trajectory": "60_deg_s",
@@ -26809,10 +26701,7 @@
       "stoi_vs_ideal_output_median": 0.9587374831452842,
       "stoi_loss_vs_ideal_output_mean": 0.04142868115610099,
       "stoi_loss_vs_ideal_output_sd": 0.016608589943598144,
-      "stoi_loss_vs_ideal_output_median": 0.041262516854715825,
-      "si_sdr_vs_ideal_output_db_mean": 12.644281275683454,
-      "si_sdr_vs_ideal_output_db_sd": 2.818908559582602,
-      "si_sdr_vs_ideal_output_db_median": 11.605131804902037
+      "stoi_loss_vs_ideal_output_median": 0.041262516854715825
     },
     {
       "trajectory": "60_deg_s",
@@ -26833,10 +26722,7 @@
       "stoi_vs_ideal_output_median": 0.9831642148551535,
       "stoi_loss_vs_ideal_output_mean": 0.01723732248303579,
       "stoi_loss_vs_ideal_output_sd": 0.007145596629582783,
-      "stoi_loss_vs_ideal_output_median": 0.016835785144846516,
-      "si_sdr_vs_ideal_output_db_mean": 17.00654987027495,
-      "si_sdr_vs_ideal_output_db_sd": 2.995332219815217,
-      "si_sdr_vs_ideal_output_db_median": 15.928826187620217
+      "stoi_loss_vs_ideal_output_median": 0.016835785144846516
     },
     {
       "trajectory": "60_deg_s",
@@ -26857,10 +26743,7 @@
       "stoi_vs_ideal_output_median": 0.997800282050611,
       "stoi_loss_vs_ideal_output_mean": 0.0022709256810907385,
       "stoi_loss_vs_ideal_output_sd": 0.0009762277300314661,
-      "stoi_loss_vs_ideal_output_median": 0.0021997179493890018,
-      "si_sdr_vs_ideal_output_db_mean": 26.390443558872498,
-      "si_sdr_vs_ideal_output_db_sd": 3.198423083023629,
-      "si_sdr_vs_ideal_output_db_median": 25.29756658210872
+      "stoi_loss_vs_ideal_output_median": 0.0021997179493890018
     },
     {
       "trajectory": "60_deg_s",
@@ -26881,10 +26764,7 @@
       "stoi_vs_ideal_output_median": 1.0,
       "stoi_loss_vs_ideal_output_mean": 0.0,
       "stoi_loss_vs_ideal_output_sd": 0.0,
-      "stoi_loss_vs_ideal_output_median": 0.0,
-      "si_sdr_vs_ideal_output_db_mean": 165.67956930115014,
-      "si_sdr_vs_ideal_output_db_sd": 2.693164528597815,
-      "si_sdr_vs_ideal_output_db_median": 165.87442274745916
+      "stoi_loss_vs_ideal_output_median": 0.0
     },
     {
       "trajectory": "60_deg_s",
@@ -26905,10 +26785,7 @@
       "stoi_vs_ideal_output_median": 0.5768994162638021,
       "stoi_loss_vs_ideal_output_mean": 0.42245313265926676,
       "stoi_loss_vs_ideal_output_sd": 0.05771445591065279,
-      "stoi_loss_vs_ideal_output_median": 0.42310058373619785,
-      "si_sdr_vs_ideal_output_db_mean": -7.757996337975913,
-      "si_sdr_vs_ideal_output_db_sd": 2.6507828260336597,
-      "si_sdr_vs_ideal_output_db_median": -7.644384012084989
+      "stoi_loss_vs_ideal_output_median": 0.42310058373619785
     },
     {
       "trajectory": "60_deg_s",
@@ -26929,10 +26806,7 @@
       "stoi_vs_ideal_output_median": 0.630211815133028,
       "stoi_loss_vs_ideal_output_mean": 0.36372432504721913,
       "stoi_loss_vs_ideal_output_sd": 0.04935677778235103,
-      "stoi_loss_vs_ideal_output_median": 0.369788184866972,
-      "si_sdr_vs_ideal_output_db_mean": -5.730444894419281,
-      "si_sdr_vs_ideal_output_db_sd": 2.5169533685827035,
-      "si_sdr_vs_ideal_output_db_median": -5.802189503328157
+      "stoi_loss_vs_ideal_output_median": 0.369788184866972
     },
     {
       "trajectory": "60_deg_s",
@@ -26953,10 +26827,7 @@
       "stoi_vs_ideal_output_median": 0.6712720049910598,
       "stoi_loss_vs_ideal_output_mean": 0.3196227734805804,
       "stoi_loss_vs_ideal_output_sd": 0.05120378973307039,
-      "stoi_loss_vs_ideal_output_median": 0.32872799500894023,
-      "si_sdr_vs_ideal_output_db_mean": -4.592458371334078,
-      "si_sdr_vs_ideal_output_db_sd": 2.667017915377832,
-      "si_sdr_vs_ideal_output_db_median": -4.566108877792886
+      "stoi_loss_vs_ideal_output_median": 0.32872799500894023
     },
     {
       "trajectory": "60_deg_s",
@@ -26977,10 +26848,7 @@
       "stoi_vs_ideal_output_median": 0.7063749024714203,
       "stoi_loss_vs_ideal_output_mean": 0.27867359189669244,
       "stoi_loss_vs_ideal_output_sd": 0.06265359134617188,
-      "stoi_loss_vs_ideal_output_median": 0.2936250975285797,
-      "si_sdr_vs_ideal_output_db_mean": -3.7136285927197883,
-      "si_sdr_vs_ideal_output_db_sd": 2.9767543904111404,
-      "si_sdr_vs_ideal_output_db_median": -3.5973619594975235
+      "stoi_loss_vs_ideal_output_median": 0.2936250975285797
     },
     {
       "trajectory": "60_deg_s",
@@ -27001,10 +26869,7 @@
       "stoi_vs_ideal_output_median": 0.716382246973459,
       "stoi_loss_vs_ideal_output_mean": 0.2661608482467349,
       "stoi_loss_vs_ideal_output_sd": 0.06784748088790943,
-      "stoi_loss_vs_ideal_output_median": 0.283617753026541,
-      "si_sdr_vs_ideal_output_db_mean": -3.398850371560467,
-      "si_sdr_vs_ideal_output_db_sd": 3.1516094004278123,
-      "si_sdr_vs_ideal_output_db_median": -3.4330391669017364
+      "stoi_loss_vs_ideal_output_median": 0.283617753026541
     },
     {
       "trajectory": "60_deg_s",
@@ -27025,10 +26890,7 @@
       "stoi_vs_ideal_output_median": 0.4203493438916051,
       "stoi_loss_vs_ideal_output_mean": 0.57608925025279,
       "stoi_loss_vs_ideal_output_sd": 0.07830934200229411,
-      "stoi_loss_vs_ideal_output_median": 0.579650656108395,
-      "si_sdr_vs_ideal_output_db_mean": -9.344998257428749,
-      "si_sdr_vs_ideal_output_db_sd": 3.4991698163051446,
-      "si_sdr_vs_ideal_output_db_median": -8.850525900789012
+      "stoi_loss_vs_ideal_output_median": 0.579650656108395
     },
     {
       "trajectory": "60_deg_s",
@@ -27049,10 +26911,7 @@
       "stoi_vs_ideal_output_median": 0.4911487598534455,
       "stoi_loss_vs_ideal_output_mean": 0.5054917959153397,
       "stoi_loss_vs_ideal_output_sd": 0.07469583063032034,
-      "stoi_loss_vs_ideal_output_median": 0.5088512401465545,
-      "si_sdr_vs_ideal_output_db_mean": -7.282972620031208,
-      "si_sdr_vs_ideal_output_db_sd": 3.372792689067684,
-      "si_sdr_vs_ideal_output_db_median": -6.80153405335931
+      "stoi_loss_vs_ideal_output_median": 0.5088512401465545
     },
     {
       "trajectory": "60_deg_s",
@@ -27073,10 +26932,7 @@
       "stoi_vs_ideal_output_median": 0.5399737092082257,
       "stoi_loss_vs_ideal_output_mean": 0.45032374087502847,
       "stoi_loss_vs_ideal_output_sd": 0.08349307718671801,
-      "stoi_loss_vs_ideal_output_median": 0.4600262907917743,
-      "si_sdr_vs_ideal_output_db_mean": -6.146132460900415,
-      "si_sdr_vs_ideal_output_db_sd": 3.573610680882207,
-      "si_sdr_vs_ideal_output_db_median": -5.781402436191929
+      "stoi_loss_vs_ideal_output_median": 0.4600262907917743
     },
     {
       "trajectory": "60_deg_s",
@@ -27097,10 +26953,7 @@
       "stoi_vs_ideal_output_median": 0.5782973972821164,
       "stoi_loss_vs_ideal_output_mean": 0.4033572734703029,
       "stoi_loss_vs_ideal_output_sd": 0.09962613566770913,
-      "stoi_loss_vs_ideal_output_median": 0.42170260271788357,
-      "si_sdr_vs_ideal_output_db_mean": -5.281069677855051,
-      "si_sdr_vs_ideal_output_db_sd": 3.920014295326708,
-      "si_sdr_vs_ideal_output_db_median": -4.9867620084047815
+      "stoi_loss_vs_ideal_output_median": 0.42170260271788357
     },
     {
       "trajectory": "60_deg_s",
@@ -27121,10 +26974,7 @@
       "stoi_vs_ideal_output_median": 0.5926480408176967,
       "stoi_loss_vs_ideal_output_mean": 0.38935980914511875,
       "stoi_loss_vs_ideal_output_sd": 0.10497989131346773,
-      "stoi_loss_vs_ideal_output_median": 0.40735195918230327,
-      "si_sdr_vs_ideal_output_db_mean": -4.97677583981869,
-      "si_sdr_vs_ideal_output_db_sd": 4.104028675369033,
-      "si_sdr_vs_ideal_output_db_median": -4.7092977822230875
+      "stoi_loss_vs_ideal_output_median": 0.40735195918230327
     },
     {
       "trajectory": "60_deg_s",
@@ -27145,10 +26995,7 @@
       "stoi_vs_ideal_output_median": 0.27498383446835933,
       "stoi_loss_vs_ideal_output_mean": 0.708422012208852,
       "stoi_loss_vs_ideal_output_sd": 0.08931909273124145,
-      "stoi_loss_vs_ideal_output_median": 0.7250161655316406,
-      "si_sdr_vs_ideal_output_db_mean": -7.195516269115564,
-      "si_sdr_vs_ideal_output_db_sd": 1.725219212155735,
-      "si_sdr_vs_ideal_output_db_median": -7.300480613879772
+      "stoi_loss_vs_ideal_output_median": 0.7250161655316406
     },
     {
       "trajectory": "60_deg_s",
@@ -27169,10 +27016,7 @@
       "stoi_vs_ideal_output_median": 0.3578882423048513,
       "stoi_loss_vs_ideal_output_mean": 0.6259654934410195,
       "stoi_loss_vs_ideal_output_sd": 0.0899571732368072,
-      "stoi_loss_vs_ideal_output_median": 0.6421117576951487,
-      "si_sdr_vs_ideal_output_db_mean": -5.416610549653957,
-      "si_sdr_vs_ideal_output_db_sd": 1.7087641192135299,
-      "si_sdr_vs_ideal_output_db_median": -5.53843529845351
+      "stoi_loss_vs_ideal_output_median": 0.6421117576951487
     },
     {
       "trajectory": "60_deg_s",
@@ -27193,10 +27037,7 @@
       "stoi_vs_ideal_output_median": 0.41285703127666407,
       "stoi_loss_vs_ideal_output_mean": 0.5588535210565577,
       "stoi_loss_vs_ideal_output_sd": 0.10612513073991901,
-      "stoi_loss_vs_ideal_output_median": 0.5871429687233359,
-      "si_sdr_vs_ideal_output_db_mean": -4.411981176478473,
-      "si_sdr_vs_ideal_output_db_sd": 1.9080883685824226,
-      "si_sdr_vs_ideal_output_db_median": -4.5179608660666535
+      "stoi_loss_vs_ideal_output_median": 0.5871429687233359
     },
     {
       "trajectory": "60_deg_s",
@@ -27217,10 +27058,7 @@
       "stoi_vs_ideal_output_median": 0.47461172913910615,
       "stoi_loss_vs_ideal_output_mean": 0.5036571673257454,
       "stoi_loss_vs_ideal_output_sd": 0.12927449381732595,
-      "stoi_loss_vs_ideal_output_median": 0.5253882708608939,
-      "si_sdr_vs_ideal_output_db_mean": -3.648165561963602,
-      "si_sdr_vs_ideal_output_db_sd": 2.2246230853200952,
-      "si_sdr_vs_ideal_output_db_median": -3.8832249703436923
+      "stoi_loss_vs_ideal_output_median": 0.5253882708608939
     },
     {
       "trajectory": "60_deg_s",
@@ -27241,10 +27079,7 @@
       "stoi_vs_ideal_output_median": 0.4889667477855258,
       "stoi_loss_vs_ideal_output_mean": 0.48797203765694874,
       "stoi_loss_vs_ideal_output_sd": 0.13661094448449385,
-      "stoi_loss_vs_ideal_output_median": 0.5110332522144743,
-      "si_sdr_vs_ideal_output_db_mean": -3.3864381836270065,
-      "si_sdr_vs_ideal_output_db_sd": 2.3697384235516057,
-      "si_sdr_vs_ideal_output_db_median": -3.65328428064433
+      "stoi_loss_vs_ideal_output_median": 0.5110332522144743
     },
     {
       "trajectory": "60_deg_s",
@@ -27265,10 +27100,7 @@
       "stoi_vs_ideal_output_median": 0.21740323866603165,
       "stoi_loss_vs_ideal_output_mean": 0.783200722468303,
       "stoi_loss_vs_ideal_output_sd": 0.10112109173023862,
-      "stoi_loss_vs_ideal_output_median": 0.7825967613339684,
-      "si_sdr_vs_ideal_output_db_mean": -8.225966494638529,
-      "si_sdr_vs_ideal_output_db_sd": 2.2986128768703886,
-      "si_sdr_vs_ideal_output_db_median": -7.994351980050016
+      "stoi_loss_vs_ideal_output_median": 0.7825967613339684
     },
     {
       "trajectory": "60_deg_s",
@@ -27289,10 +27121,7 @@
       "stoi_vs_ideal_output_median": 0.28813981535328925,
       "stoi_loss_vs_ideal_output_mean": 0.6984076757565701,
       "stoi_loss_vs_ideal_output_sd": 0.1065136546397029,
-      "stoi_loss_vs_ideal_output_median": 0.7118601846467107,
-      "si_sdr_vs_ideal_output_db_mean": -6.373312970251413,
-      "si_sdr_vs_ideal_output_db_sd": 2.710432484368984,
-      "si_sdr_vs_ideal_output_db_median": -6.13908633097606
+      "stoi_loss_vs_ideal_output_median": 0.7118601846467107
     },
     {
       "trajectory": "60_deg_s",
@@ -27313,10 +27142,7 @@
       "stoi_vs_ideal_output_median": 0.3558339272676389,
       "stoi_loss_vs_ideal_output_mean": 0.6269666053967526,
       "stoi_loss_vs_ideal_output_sd": 0.12404918800790142,
-      "stoi_loss_vs_ideal_output_median": 0.644166072732361,
-      "si_sdr_vs_ideal_output_db_mean": -5.34010282290962,
-      "si_sdr_vs_ideal_output_db_sd": 3.1695799778185223,
-      "si_sdr_vs_ideal_output_db_median": -5.063569740473913
+      "stoi_loss_vs_ideal_output_median": 0.644166072732361
     },
     {
       "trajectory": "60_deg_s",
@@ -27337,10 +27163,7 @@
       "stoi_vs_ideal_output_median": 0.4161457319243646,
       "stoi_loss_vs_ideal_output_mean": 0.5667306224828634,
       "stoi_loss_vs_ideal_output_sd": 0.146871424771178,
-      "stoi_loss_vs_ideal_output_median": 0.5838542680756353,
-      "si_sdr_vs_ideal_output_db_mean": -4.574101933064578,
-      "si_sdr_vs_ideal_output_db_sd": 3.7939505653790384,
-      "si_sdr_vs_ideal_output_db_median": -4.342388285555851
+      "stoi_loss_vs_ideal_output_median": 0.5838542680756353
     },
     {
       "trajectory": "60_deg_s",
@@ -27361,10 +27184,7 @@
       "stoi_vs_ideal_output_median": 0.4262854338976373,
       "stoi_loss_vs_ideal_output_mean": 0.5492320524335751,
       "stoi_loss_vs_ideal_output_sd": 0.15381977979978023,
-      "stoi_loss_vs_ideal_output_median": 0.5737145661023627,
-      "si_sdr_vs_ideal_output_db_mean": -4.335037825561316,
-      "si_sdr_vs_ideal_output_db_sd": 4.259094879490363,
-      "si_sdr_vs_ideal_output_db_median": -4.08650556707966
+      "stoi_loss_vs_ideal_output_median": 0.5737145661023627
     },
     {
       "trajectory": "60_deg_s",
@@ -27385,10 +27205,7 @@
       "stoi_vs_ideal_output_median": 0.18981060763835236,
       "stoi_loss_vs_ideal_output_mean": 0.8024613800174336,
       "stoi_loss_vs_ideal_output_sd": 0.09783914011077258,
-      "stoi_loss_vs_ideal_output_median": 0.8101893923616477,
-      "si_sdr_vs_ideal_output_db_mean": -7.91477813022123,
-      "si_sdr_vs_ideal_output_db_sd": 1.8374202402363344,
-      "si_sdr_vs_ideal_output_db_median": -7.963201789093018
+      "stoi_loss_vs_ideal_output_median": 0.8101893923616477
     },
     {
       "trajectory": "60_deg_s",
@@ -27409,10 +27226,7 @@
       "stoi_vs_ideal_output_median": 0.2810855700410999,
       "stoi_loss_vs_ideal_output_mean": 0.7203918032066239,
       "stoi_loss_vs_ideal_output_sd": 0.10502592805025086,
-      "stoi_loss_vs_ideal_output_median": 0.7189144299589001,
-      "si_sdr_vs_ideal_output_db_mean": -6.036765202080495,
-      "si_sdr_vs_ideal_output_db_sd": 1.7182329074561595,
-      "si_sdr_vs_ideal_output_db_median": -6.0692853676776
+      "stoi_loss_vs_ideal_output_median": 0.7189144299589001
     },
     {
       "trajectory": "60_deg_s",
@@ -27433,10 +27247,7 @@
       "stoi_vs_ideal_output_median": 0.35004760222651476,
       "stoi_loss_vs_ideal_output_mean": 0.6507191376611968,
       "stoi_loss_vs_ideal_output_sd": 0.12293412426350059,
-      "stoi_loss_vs_ideal_output_median": 0.6499523977734852,
-      "si_sdr_vs_ideal_output_db_mean": -4.9825060475340255,
-      "si_sdr_vs_ideal_output_db_sd": 1.8367642176216088,
-      "si_sdr_vs_ideal_output_db_median": -5.104962159020105
+      "stoi_loss_vs_ideal_output_median": 0.6499523977734852
     },
     {
       "trajectory": "60_deg_s",
@@ -27457,10 +27268,7 @@
       "stoi_vs_ideal_output_median": 0.39940070471450784,
       "stoi_loss_vs_ideal_output_mean": 0.5907313124099073,
       "stoi_loss_vs_ideal_output_sd": 0.1471815190752398,
-      "stoi_loss_vs_ideal_output_median": 0.6005992952854922,
-      "si_sdr_vs_ideal_output_db_mean": -4.186467787298069,
-      "si_sdr_vs_ideal_output_db_sd": 2.0641313171323845,
-      "si_sdr_vs_ideal_output_db_median": -4.395294813510512
+      "stoi_loss_vs_ideal_output_median": 0.6005992952854922
     },
     {
       "trajectory": "60_deg_s",
@@ -27481,10 +27289,7 @@
       "stoi_vs_ideal_output_median": 0.4131256464868299,
       "stoi_loss_vs_ideal_output_mean": 0.5724954974623708,
       "stoi_loss_vs_ideal_output_sd": 0.15538599971044495,
-      "stoi_loss_vs_ideal_output_median": 0.5868743535131701,
-      "si_sdr_vs_ideal_output_db_mean": -3.9132585022949824,
-      "si_sdr_vs_ideal_output_db_sd": 2.1643400696587864,
-      "si_sdr_vs_ideal_output_db_median": -4.144129936695226
+      "stoi_loss_vs_ideal_output_median": 0.5868743535131701
     },
     {
       "trajectory": "60_deg_s",
@@ -27505,10 +27310,7 @@
       "stoi_vs_ideal_output_median": 0.19597768077785307,
       "stoi_loss_vs_ideal_output_mean": 0.8002612810056844,
       "stoi_loss_vs_ideal_output_sd": 0.09358114703652075,
-      "stoi_loss_vs_ideal_output_median": 0.804022319222147,
-      "si_sdr_vs_ideal_output_db_mean": -8.799150144548436,
-      "si_sdr_vs_ideal_output_db_sd": 2.6073221632682135,
-      "si_sdr_vs_ideal_output_db_median": -8.330314745706254
+      "stoi_loss_vs_ideal_output_median": 0.804022319222147
     },
     {
       "trajectory": "60_deg_s",
@@ -27529,10 +27331,7 @@
       "stoi_vs_ideal_output_median": 0.2852555963240738,
       "stoi_loss_vs_ideal_output_mean": 0.7171834987314725,
       "stoi_loss_vs_ideal_output_sd": 0.09892673138571358,
-      "stoi_loss_vs_ideal_output_median": 0.7147444036759262,
-      "si_sdr_vs_ideal_output_db_mean": -6.725159782474206,
-      "si_sdr_vs_ideal_output_db_sd": 2.6294408546930286,
-      "si_sdr_vs_ideal_output_db_median": -6.043928252481898
+      "stoi_loss_vs_ideal_output_median": 0.7147444036759262
     },
     {
       "trajectory": "60_deg_s",
@@ -27553,10 +27352,7 @@
       "stoi_vs_ideal_output_median": 0.34150114006504484,
       "stoi_loss_vs_ideal_output_mean": 0.6479199739099285,
       "stoi_loss_vs_ideal_output_sd": 0.11503549842376344,
-      "stoi_loss_vs_ideal_output_median": 0.6584988599349552,
-      "si_sdr_vs_ideal_output_db_mean": -5.573766546768329,
-      "si_sdr_vs_ideal_output_db_sd": 2.8118309205616767,
-      "si_sdr_vs_ideal_output_db_median": -4.941885288540943
+      "stoi_loss_vs_ideal_output_median": 0.6584988599349552
     },
     {
       "trajectory": "60_deg_s",
@@ -27577,10 +27373,7 @@
       "stoi_vs_ideal_output_median": 0.40530616405747166,
       "stoi_loss_vs_ideal_output_mean": 0.587919282868053,
       "stoi_loss_vs_ideal_output_sd": 0.13766108008384942,
-      "stoi_loss_vs_ideal_output_median": 0.5946938359425283,
-      "si_sdr_vs_ideal_output_db_mean": -4.7083957684279145,
-      "si_sdr_vs_ideal_output_db_sd": 3.0522011309005803,
-      "si_sdr_vs_ideal_output_db_median": -4.031592615235185
+      "stoi_loss_vs_ideal_output_median": 0.5946938359425283
     },
     {
       "trajectory": "60_deg_s",
@@ -27601,10 +27394,7 @@
       "stoi_vs_ideal_output_median": 0.4251417155497174,
       "stoi_loss_vs_ideal_output_mean": 0.5692680913184652,
       "stoi_loss_vs_ideal_output_sd": 0.1461568209421827,
-      "stoi_loss_vs_ideal_output_median": 0.5748582844502825,
-      "si_sdr_vs_ideal_output_db_mean": -4.409677278349376,
-      "si_sdr_vs_ideal_output_db_sd": 3.1514569601746465,
-      "si_sdr_vs_ideal_output_db_median": -3.843198061928439
+      "stoi_loss_vs_ideal_output_median": 0.5748582844502825
     },
     {
       "trajectory": "120_deg_s",
@@ -27625,10 +27415,7 @@
       "stoi_vs_ideal_output_median": 0.9055359909805838,
       "stoi_loss_vs_ideal_output_mean": 0.09355822415629782,
       "stoi_loss_vs_ideal_output_sd": 0.030395801930911806,
-      "stoi_loss_vs_ideal_output_median": 0.0944640090194162,
-      "si_sdr_vs_ideal_output_db_mean": 8.087315311962236,
-      "si_sdr_vs_ideal_output_db_sd": 2.406626816810242,
-      "si_sdr_vs_ideal_output_db_median": 7.353921541173899
+      "stoi_loss_vs_ideal_output_median": 0.0944640090194162
     },
     {
       "trajectory": "120_deg_s",
@@ -27649,10 +27436,7 @@
       "stoi_vs_ideal_output_median": 0.9539854571300086,
       "stoi_loss_vs_ideal_output_mean": 0.04449698433296638,
       "stoi_loss_vs_ideal_output_sd": 0.015111649852922524,
-      "stoi_loss_vs_ideal_output_median": 0.04601454286999146,
-      "si_sdr_vs_ideal_output_db_mean": 12.153122394681631,
-      "si_sdr_vs_ideal_output_db_sd": 2.682841212330844,
-      "si_sdr_vs_ideal_output_db_median": 11.342583928677271
+      "stoi_loss_vs_ideal_output_median": 0.04601454286999146
     },
     {
       "trajectory": "120_deg_s",
@@ -27673,10 +27457,7 @@
       "stoi_vs_ideal_output_median": 0.9807565159611791,
       "stoi_loss_vs_ideal_output_mean": 0.018518720186286294,
       "stoi_loss_vs_ideal_output_sd": 0.006495086588608633,
-      "stoi_loss_vs_ideal_output_median": 0.019243484038820924,
-      "si_sdr_vs_ideal_output_db_mean": 16.56865378808542,
-      "si_sdr_vs_ideal_output_db_sd": 2.883845065822865,
-      "si_sdr_vs_ideal_output_db_median": 15.815875102599783
+      "stoi_loss_vs_ideal_output_median": 0.019243484038820924
     },
     {
       "trajectory": "120_deg_s",
@@ -27697,10 +27478,7 @@
       "stoi_vs_ideal_output_median": 0.9974657859771064,
       "stoi_loss_vs_ideal_output_mean": 0.0024448362186145246,
       "stoi_loss_vs_ideal_output_sd": 0.0008914755178027137,
-      "stoi_loss_vs_ideal_output_median": 0.002534214022893555,
-      "si_sdr_vs_ideal_output_db_mean": 26.010702266322028,
-      "si_sdr_vs_ideal_output_db_sd": 3.098735630838738,
-      "si_sdr_vs_ideal_output_db_median": 25.34919665201042
+      "stoi_loss_vs_ideal_output_median": 0.002534214022893555
     },
     {
       "trajectory": "120_deg_s",
@@ -27721,10 +27499,7 @@
       "stoi_vs_ideal_output_median": 1.0,
       "stoi_loss_vs_ideal_output_mean": 0.0,
       "stoi_loss_vs_ideal_output_sd": 0.0,
-      "stoi_loss_vs_ideal_output_median": 0.0,
-      "si_sdr_vs_ideal_output_db_mean": 166.23157485334977,
-      "si_sdr_vs_ideal_output_db_sd": 2.4100944415224466,
-      "si_sdr_vs_ideal_output_db_median": 166.36398178408817
+      "stoi_loss_vs_ideal_output_median": 0.0
     },
     {
       "trajectory": "120_deg_s",
@@ -27745,10 +27520,7 @@
       "stoi_vs_ideal_output_median": 0.5652668864116119,
       "stoi_loss_vs_ideal_output_mean": 0.4316235906158369,
       "stoi_loss_vs_ideal_output_sd": 0.05498685506446593,
-      "stoi_loss_vs_ideal_output_median": 0.4347331135883881,
-      "si_sdr_vs_ideal_output_db_mean": -8.080441356142508,
-      "si_sdr_vs_ideal_output_db_sd": 2.981560548519456,
-      "si_sdr_vs_ideal_output_db_median": -7.8511187689300685
+      "stoi_loss_vs_ideal_output_median": 0.4347331135883881
     },
     {
       "trajectory": "120_deg_s",
@@ -27769,10 +27541,7 @@
       "stoi_vs_ideal_output_median": 0.6264450024866812,
       "stoi_loss_vs_ideal_output_mean": 0.37160433438377594,
       "stoi_loss_vs_ideal_output_sd": 0.047794198735652015,
-      "stoi_loss_vs_ideal_output_median": 0.37355499751331883,
-      "si_sdr_vs_ideal_output_db_mean": -6.0909392284231965,
-      "si_sdr_vs_ideal_output_db_sd": 2.7451761735329585,
-      "si_sdr_vs_ideal_output_db_median": -5.9559616973686085
+      "stoi_loss_vs_ideal_output_median": 0.37355499751331883
     },
     {
       "trajectory": "120_deg_s",
@@ -27793,10 +27562,7 @@
       "stoi_vs_ideal_output_median": 0.6742796407904091,
       "stoi_loss_vs_ideal_output_mean": 0.32720782149223976,
       "stoi_loss_vs_ideal_output_sd": 0.048043750224759575,
-      "stoi_loss_vs_ideal_output_median": 0.32572035920959086,
-      "si_sdr_vs_ideal_output_db_mean": -5.031976253614503,
-      "si_sdr_vs_ideal_output_db_sd": 2.8154058891228555,
-      "si_sdr_vs_ideal_output_db_median": -5.062869241549558
+      "stoi_loss_vs_ideal_output_median": 0.32572035920959086
     },
     {
       "trajectory": "120_deg_s",
@@ -27817,10 +27583,7 @@
       "stoi_vs_ideal_output_median": 0.7140451730180544,
       "stoi_loss_vs_ideal_output_mean": 0.28771671032025786,
       "stoi_loss_vs_ideal_output_sd": 0.057339708987232244,
-      "stoi_loss_vs_ideal_output_median": 0.28595482698194563,
-      "si_sdr_vs_ideal_output_db_mean": -4.278096520621158,
-      "si_sdr_vs_ideal_output_db_sd": 2.9504569545812194,
-      "si_sdr_vs_ideal_output_db_median": -4.075697564984982
+      "stoi_loss_vs_ideal_output_median": 0.28595482698194563
     },
     {
       "trajectory": "120_deg_s",
@@ -27841,10 +27604,7 @@
       "stoi_vs_ideal_output_median": 0.7208074958479099,
       "stoi_loss_vs_ideal_output_mean": 0.2763961052746228,
       "stoi_loss_vs_ideal_output_sd": 0.061395879239841404,
-      "stoi_loss_vs_ideal_output_median": 0.27919250415209007,
-      "si_sdr_vs_ideal_output_db_mean": -4.037407674291889,
-      "si_sdr_vs_ideal_output_db_sd": 2.995415769441368,
-      "si_sdr_vs_ideal_output_db_median": -3.8137710356925725
+      "stoi_loss_vs_ideal_output_median": 0.27919250415209007
     },
     {
       "trajectory": "120_deg_s",
@@ -27865,10 +27625,7 @@
       "stoi_vs_ideal_output_median": 0.41191344735345936,
       "stoi_loss_vs_ideal_output_mean": 0.5864104910892576,
       "stoi_loss_vs_ideal_output_sd": 0.065250133448544,
-      "stoi_loss_vs_ideal_output_median": 0.5880865526465406,
-      "si_sdr_vs_ideal_output_db_mean": -9.967599260753424,
-      "si_sdr_vs_ideal_output_db_sd": 4.887952935053718,
-      "si_sdr_vs_ideal_output_db_median": -9.084954693879315
+      "stoi_loss_vs_ideal_output_median": 0.5880865526465406
     },
     {
       "trajectory": "120_deg_s",
@@ -27889,10 +27646,7 @@
       "stoi_vs_ideal_output_median": 0.48101332854513035,
       "stoi_loss_vs_ideal_output_mean": 0.5161105478189929,
       "stoi_loss_vs_ideal_output_sd": 0.06386678152680962,
-      "stoi_loss_vs_ideal_output_median": 0.5189866714548697,
-      "si_sdr_vs_ideal_output_db_mean": -7.973981456316133,
-      "si_sdr_vs_ideal_output_db_sd": 4.552628151415502,
-      "si_sdr_vs_ideal_output_db_median": -7.183282196220013
+      "stoi_loss_vs_ideal_output_median": 0.5189866714548697
     },
     {
       "trajectory": "120_deg_s",
@@ -27913,10 +27667,7 @@
       "stoi_vs_ideal_output_median": 0.53264505792997,
       "stoi_loss_vs_ideal_output_mean": 0.46127765731209186,
       "stoi_loss_vs_ideal_output_sd": 0.07327300185854568,
-      "stoi_loss_vs_ideal_output_median": 0.46735494207003003,
-      "si_sdr_vs_ideal_output_db_mean": -6.954127661999941,
-      "si_sdr_vs_ideal_output_db_sd": 4.7382927483354775,
-      "si_sdr_vs_ideal_output_db_median": -6.259990976919719
+      "stoi_loss_vs_ideal_output_median": 0.46735494207003003
     },
     {
       "trajectory": "120_deg_s",
@@ -27937,10 +27688,7 @@
       "stoi_vs_ideal_output_median": 0.5649075393096978,
       "stoi_loss_vs_ideal_output_mean": 0.4157992852628328,
       "stoi_loss_vs_ideal_output_sd": 0.08840715748668737,
-      "stoi_loss_vs_ideal_output_median": 0.43509246069030216,
-      "si_sdr_vs_ideal_output_db_mean": -6.128662253419094,
-      "si_sdr_vs_ideal_output_db_sd": 4.352840979362827,
-      "si_sdr_vs_ideal_output_db_median": -5.4941648981660745
+      "stoi_loss_vs_ideal_output_median": 0.43509246069030216
     },
     {
       "trajectory": "120_deg_s",
@@ -27961,10 +27709,7 @@
       "stoi_vs_ideal_output_median": 0.5716147754777708,
       "stoi_loss_vs_ideal_output_mean": 0.40317633330095853,
       "stoi_loss_vs_ideal_output_sd": 0.09314918364720114,
-      "stoi_loss_vs_ideal_output_median": 0.42838522452222916,
-      "si_sdr_vs_ideal_output_db_mean": -5.8684242553528785,
-      "si_sdr_vs_ideal_output_db_sd": 4.276131593073033,
-      "si_sdr_vs_ideal_output_db_median": -5.27395913025803
+      "stoi_loss_vs_ideal_output_median": 0.42838522452222916
     },
     {
       "trajectory": "120_deg_s",
@@ -27985,10 +27730,7 @@
       "stoi_vs_ideal_output_median": 0.27378814914778765,
       "stoi_loss_vs_ideal_output_mean": 0.719261117161158,
       "stoi_loss_vs_ideal_output_sd": 0.07693183145462093,
-      "stoi_loss_vs_ideal_output_median": 0.7262118508522124,
-      "si_sdr_vs_ideal_output_db_mean": -7.329965899443371,
-      "si_sdr_vs_ideal_output_db_sd": 1.5885362800911509,
-      "si_sdr_vs_ideal_output_db_median": -7.376003635065748
+      "stoi_loss_vs_ideal_output_median": 0.7262118508522124
     },
     {
       "trajectory": "120_deg_s",
@@ -28009,10 +27751,7 @@
       "stoi_vs_ideal_output_median": 0.343012528139656,
       "stoi_loss_vs_ideal_output_mean": 0.6398620404474579,
       "stoi_loss_vs_ideal_output_sd": 0.08193984215392114,
-      "stoi_loss_vs_ideal_output_median": 0.6569874718603441,
-      "si_sdr_vs_ideal_output_db_mean": -5.651703845189456,
-      "si_sdr_vs_ideal_output_db_sd": 1.6346067732046772,
-      "si_sdr_vs_ideal_output_db_median": -5.745138372148781
+      "stoi_loss_vs_ideal_output_median": 0.6569874718603441
     },
     {
       "trajectory": "120_deg_s",
@@ -28033,10 +27772,7 @@
       "stoi_vs_ideal_output_median": 0.4031198735636581,
       "stoi_loss_vs_ideal_output_mean": 0.5756134277590191,
       "stoi_loss_vs_ideal_output_sd": 0.1005387440453319,
-      "stoi_loss_vs_ideal_output_median": 0.5968801264363419,
-      "si_sdr_vs_ideal_output_db_mean": -4.743505784386466,
-      "si_sdr_vs_ideal_output_db_sd": 1.8127368364757455,
-      "si_sdr_vs_ideal_output_db_median": -4.7035712878079465
+      "stoi_loss_vs_ideal_output_median": 0.5968801264363419
     },
     {
       "trajectory": "120_deg_s",
@@ -28057,10 +27793,7 @@
       "stoi_vs_ideal_output_median": 0.4540089460151042,
       "stoi_loss_vs_ideal_output_mean": 0.5237673499333477,
       "stoi_loss_vs_ideal_output_sd": 0.12282526709926454,
-      "stoi_loss_vs_ideal_output_median": 0.5459910539848958,
-      "si_sdr_vs_ideal_output_db_mean": -4.100227330431553,
-      "si_sdr_vs_ideal_output_db_sd": 2.0228472052460726,
-      "si_sdr_vs_ideal_output_db_median": -4.101288070620097
+      "stoi_loss_vs_ideal_output_median": 0.5459910539848958
     },
     {
       "trajectory": "120_deg_s",
@@ -28081,10 +27814,7 @@
       "stoi_vs_ideal_output_median": 0.4698004264277955,
       "stoi_loss_vs_ideal_output_mean": 0.5098297196446508,
       "stoi_loss_vs_ideal_output_sd": 0.12886765497256647,
-      "stoi_loss_vs_ideal_output_median": 0.5301995735722045,
-      "si_sdr_vs_ideal_output_db_mean": -3.9016033884016887,
-      "si_sdr_vs_ideal_output_db_sd": 2.0910912743085324,
-      "si_sdr_vs_ideal_output_db_median": -3.8958345431194386
+      "stoi_loss_vs_ideal_output_median": 0.5301995735722045
     },
     {
       "trajectory": "120_deg_s",
@@ -28105,10 +27835,7 @@
       "stoi_vs_ideal_output_median": 0.20033056742517993,
       "stoi_loss_vs_ideal_output_mean": 0.7905014589126796,
       "stoi_loss_vs_ideal_output_sd": 0.08670721392255769,
-      "stoi_loss_vs_ideal_output_median": 0.79966943257482,
-      "si_sdr_vs_ideal_output_db_mean": -8.73505458449103,
-      "si_sdr_vs_ideal_output_db_sd": 3.9726499281991403,
-      "si_sdr_vs_ideal_output_db_median": -8.286999216426786
+      "stoi_loss_vs_ideal_output_median": 0.79966943257482
     },
     {
       "trajectory": "120_deg_s",
@@ -28129,10 +27856,7 @@
       "stoi_vs_ideal_output_median": 0.27786836094557266,
       "stoi_loss_vs_ideal_output_mean": 0.7103919758167225,
       "stoi_loss_vs_ideal_output_sd": 0.0977785197405036,
-      "stoi_loss_vs_ideal_output_median": 0.7221316390544273,
-      "si_sdr_vs_ideal_output_db_mean": -6.946345777750377,
-      "si_sdr_vs_ideal_output_db_sd": 4.0188865162228895,
-      "si_sdr_vs_ideal_output_db_median": -6.5359630802015545
+      "stoi_loss_vs_ideal_output_median": 0.7221316390544273
     },
     {
       "trajectory": "120_deg_s",
@@ -28153,10 +27877,7 @@
       "stoi_vs_ideal_output_median": 0.3375365451018194,
       "stoi_loss_vs_ideal_output_mean": 0.643628696676602,
       "stoi_loss_vs_ideal_output_sd": 0.11898237727497017,
-      "stoi_loss_vs_ideal_output_median": 0.6624634548981806,
-      "si_sdr_vs_ideal_output_db_mean": -5.906036682948489,
-      "si_sdr_vs_ideal_output_db_sd": 3.4537303480914145,
-      "si_sdr_vs_ideal_output_db_median": -5.815417627439555
+      "stoi_loss_vs_ideal_output_median": 0.6624634548981806
     },
     {
       "trajectory": "120_deg_s",
@@ -28177,10 +27898,7 @@
       "stoi_vs_ideal_output_median": 0.3912107002268102,
       "stoi_loss_vs_ideal_output_mean": 0.5889541587995502,
       "stoi_loss_vs_ideal_output_sd": 0.14225145403447922,
-      "stoi_loss_vs_ideal_output_median": 0.6087892997731899,
-      "si_sdr_vs_ideal_output_db_mean": -5.180697632193714,
-      "si_sdr_vs_ideal_output_db_sd": 3.3240616624332273,
-      "si_sdr_vs_ideal_output_db_median": -5.164161194924969
+      "stoi_loss_vs_ideal_output_median": 0.6087892997731899
     },
     {
       "trajectory": "120_deg_s",
@@ -28201,10 +27919,7 @@
       "stoi_vs_ideal_output_median": 0.3991631666725837,
       "stoi_loss_vs_ideal_output_mean": 0.5741313336382792,
       "stoi_loss_vs_ideal_output_sd": 0.14844780811849817,
-      "stoi_loss_vs_ideal_output_median": 0.6008368333274163,
-      "si_sdr_vs_ideal_output_db_mean": -4.946600716028547,
-      "si_sdr_vs_ideal_output_db_sd": 3.2837301430654655,
-      "si_sdr_vs_ideal_output_db_median": -4.943927735608728
+      "stoi_loss_vs_ideal_output_median": 0.6008368333274163
     },
     {
       "trajectory": "120_deg_s",
@@ -28225,10 +27940,7 @@
       "stoi_vs_ideal_output_median": 0.18831249539861766,
       "stoi_loss_vs_ideal_output_mean": 0.8068601035022245,
       "stoi_loss_vs_ideal_output_sd": 0.08187149635892117,
-      "stoi_loss_vs_ideal_output_median": 0.8116875046013823,
-      "si_sdr_vs_ideal_output_db_mean": -8.15586173214502,
-      "si_sdr_vs_ideal_output_db_sd": 1.8585352897455607,
-      "si_sdr_vs_ideal_output_db_median": -8.35884481410406
+      "stoi_loss_vs_ideal_output_median": 0.8116875046013823
     },
     {
       "trajectory": "120_deg_s",
@@ -28249,10 +27961,7 @@
       "stoi_vs_ideal_output_median": 0.2641795698405933,
       "stoi_loss_vs_ideal_output_mean": 0.7282599592518344,
       "stoi_loss_vs_ideal_output_sd": 0.09445024629465727,
-      "stoi_loss_vs_ideal_output_median": 0.7358204301594067,
-      "si_sdr_vs_ideal_output_db_mean": -6.362820891637802,
-      "si_sdr_vs_ideal_output_db_sd": 1.592611586976388,
-      "si_sdr_vs_ideal_output_db_median": -6.444445008923499
+      "stoi_loss_vs_ideal_output_median": 0.7358204301594067
     },
     {
       "trajectory": "120_deg_s",
@@ -28273,10 +27982,7 @@
       "stoi_vs_ideal_output_median": 0.3315117569217001,
       "stoi_loss_vs_ideal_output_mean": 0.6624728612152206,
       "stoi_loss_vs_ideal_output_sd": 0.11853798219135836,
-      "stoi_loss_vs_ideal_output_median": 0.6684882430782999,
-      "si_sdr_vs_ideal_output_db_mean": -5.396225128180853,
-      "si_sdr_vs_ideal_output_db_sd": 1.5818607572995254,
-      "si_sdr_vs_ideal_output_db_median": -5.579824021750952
+      "stoi_loss_vs_ideal_output_median": 0.6684882430782999
     },
     {
       "trajectory": "120_deg_s",
@@ -28297,10 +28003,7 @@
       "stoi_vs_ideal_output_median": 0.3728192568951898,
       "stoi_loss_vs_ideal_output_mean": 0.6069354907754824,
       "stoi_loss_vs_ideal_output_sd": 0.14541644736317724,
-      "stoi_loss_vs_ideal_output_median": 0.6271807431048102,
-      "si_sdr_vs_ideal_output_db_mean": -4.703730472410127,
-      "si_sdr_vs_ideal_output_db_sd": 1.6788208077877305,
-      "si_sdr_vs_ideal_output_db_median": -4.930569313881703
+      "stoi_loss_vs_ideal_output_median": 0.6271807431048102
     },
     {
       "trajectory": "120_deg_s",
@@ -28321,10 +28024,7 @@
       "stoi_vs_ideal_output_median": 0.38772593597985094,
       "stoi_loss_vs_ideal_output_mean": 0.5911771319590066,
       "stoi_loss_vs_ideal_output_sd": 0.15278898440646624,
-      "stoi_loss_vs_ideal_output_median": 0.612274064020149,
-      "si_sdr_vs_ideal_output_db_mean": -4.480616197666368,
-      "si_sdr_vs_ideal_output_db_sd": 1.7240282144309618,
-      "si_sdr_vs_ideal_output_db_median": -4.701606896522442
+      "stoi_loss_vs_ideal_output_median": 0.612274064020149
     },
     {
       "trajectory": "120_deg_s",
@@ -28345,10 +28045,7 @@
       "stoi_vs_ideal_output_median": 0.20642213891961364,
       "stoi_loss_vs_ideal_output_mean": 0.799743804658114,
       "stoi_loss_vs_ideal_output_sd": 0.08449665066845419,
-      "stoi_loss_vs_ideal_output_median": 0.7935778610803863,
-      "si_sdr_vs_ideal_output_db_mean": -9.112963402020382,
-      "si_sdr_vs_ideal_output_db_sd": 2.3838938690069202,
-      "si_sdr_vs_ideal_output_db_median": -8.956566984103754
+      "stoi_loss_vs_ideal_output_median": 0.7935778610803863
     },
     {
       "trajectory": "120_deg_s",
@@ -28369,10 +28066,7 @@
       "stoi_vs_ideal_output_median": 0.2870212358953642,
       "stoi_loss_vs_ideal_output_mean": 0.7196967930522219,
       "stoi_loss_vs_ideal_output_sd": 0.09382640192784023,
-      "stoi_loss_vs_ideal_output_median": 0.7129787641046358,
-      "si_sdr_vs_ideal_output_db_mean": -7.154861117147522,
-      "si_sdr_vs_ideal_output_db_sd": 2.3433252093632992,
-      "si_sdr_vs_ideal_output_db_median": -6.756151843447498
+      "stoi_loss_vs_ideal_output_median": 0.7129787641046358
     },
     {
       "trajectory": "120_deg_s",
@@ -28393,10 +28087,7 @@
       "stoi_vs_ideal_output_median": 0.34566713574386065,
       "stoi_loss_vs_ideal_output_mean": 0.6542019830712233,
       "stoi_loss_vs_ideal_output_sd": 0.11411565407051377,
-      "stoi_loss_vs_ideal_output_median": 0.6543328642561393,
-      "si_sdr_vs_ideal_output_db_mean": -6.105896160121722,
-      "si_sdr_vs_ideal_output_db_sd": 2.4663512700312964,
-      "si_sdr_vs_ideal_output_db_median": -5.753014575654405
+      "stoi_loss_vs_ideal_output_median": 0.6543328642561393
     },
     {
       "trajectory": "120_deg_s",
@@ -28417,10 +28108,7 @@
       "stoi_vs_ideal_output_median": 0.3949393434041786,
       "stoi_loss_vs_ideal_output_mean": 0.5985536567183929,
       "stoi_loss_vs_ideal_output_sd": 0.13887973758698208,
-      "stoi_loss_vs_ideal_output_median": 0.6050606565958214,
-      "si_sdr_vs_ideal_output_db_mean": -5.353955351894378,
-      "si_sdr_vs_ideal_output_db_sd": 2.635685999516649,
-      "si_sdr_vs_ideal_output_db_median": -5.052286074290226
+      "stoi_loss_vs_ideal_output_median": 0.6050606565958214
     },
     {
       "trajectory": "120_deg_s",
@@ -28441,10 +28129,7 @@
       "stoi_vs_ideal_output_median": 0.4076627127396444,
       "stoi_loss_vs_ideal_output_mean": 0.5824603462982119,
       "stoi_loss_vs_ideal_output_sd": 0.14639064188113576,
-      "stoi_loss_vs_ideal_output_median": 0.5923372872603556,
-      "si_sdr_vs_ideal_output_db_mean": -5.108636647900246,
-      "si_sdr_vs_ideal_output_db_sd": 2.7007828653904977,
-      "si_sdr_vs_ideal_output_db_median": -4.87290493293451
+      "stoi_loss_vs_ideal_output_median": 0.5923372872603556
     }
   ],
   "requirements": [

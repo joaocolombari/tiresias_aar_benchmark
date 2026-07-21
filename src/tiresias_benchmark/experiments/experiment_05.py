@@ -19,7 +19,7 @@ from tiresias_benchmark.experiments.experiment_04 import (
     prepare_mono_speech,
     select_speech_pairs,
 )
-from tiresias_benchmark.metrics.audio import pesq_score, si_sdr_db, stoi_score, tir_db, tir_improvement_db
+from tiresias_benchmark.metrics.audio import si_sdr_db, stoi_score, tir_db, tir_improvement_db
 from tiresias_benchmark.separation.leakage import (
     delay_signal_samples,
     leakage_coefficient_from_sdr_db,
@@ -182,10 +182,6 @@ def run_source_delay_stoi_grid(
     resample_gcd = math.gcd(sample_rate, stoi_sample_rate)
     stoi_up = stoi_sample_rate // resample_gcd
     stoi_down = sample_rate // resample_gcd
-    pesq_sample_rate = 16_000
-    pesq_resample_gcd = math.gcd(sample_rate, pesq_sample_rate)
-    pesq_up = pesq_sample_rate // pesq_resample_gcd
-    pesq_down = sample_rate // pesq_resample_gcd
     representative_sigma = float(figure_config.get("representative_sigma_deg", 20.0))
     representative_orientation_delay = float(
         figure_config.get("representative_orientation_delay_ms", 0.0)
@@ -238,23 +234,12 @@ def run_source_delay_stoi_grid(
                 window_s=post_window_s,
             )
             ideal_output_stoi = resample_poly(ideal_output, stoi_up, stoi_down, axis=0)
-            ideal_output_pesq = resample_poly(ideal_output, pesq_up, pesq_down, axis=0)
             ideal_stoi = float(
                 mean(
                     _bounded_stoi(
                         ideal_output_stoi[:, ear],
                         ideal_output_stoi[:, ear],
                         stoi_sample_rate,
-                    )
-                    for ear in (0, 1)
-                )
-            )
-            ideal_pesq = float(
-                mean(
-                    pesq_score(
-                        ideal_output_pesq[:, ear],
-                        ideal_output_pesq[:, ear],
-                        pesq_sample_rate,
                     )
                     for ear in (0, 1)
                 )
@@ -293,7 +278,6 @@ def run_source_delay_stoi_grid(
                         window_s=post_window_s,
                     )
                     output_stoi = resample_poly(output, stoi_up, stoi_down, axis=0)
-                    output_pesq = resample_poly(output, pesq_up, pesq_down, axis=0)
                     scores = [
                         _bounded_stoi(
                             output_stoi[:, ear],
@@ -303,15 +287,6 @@ def run_source_delay_stoi_grid(
                         for ear in (0, 1)
                     ]
                     score = float(mean(scores))
-                    pesq_scores = [
-                        pesq_score(
-                            output_pesq[:, ear],
-                            ideal_output_pesq[:, ear],
-                            pesq_sample_rate,
-                        )
-                        for ear in (0, 1)
-                    ]
-                    pesq_score_mean = float(mean(pesq_scores))
                     rows.append(
                         {
                             "pair_id": pair.pair_id,
@@ -331,9 +306,6 @@ def run_source_delay_stoi_grid(
                             "ideal_stoi_vs_ideal_output": ideal_stoi,
                             "stoi_vs_ideal_output": score,
                             "stoi_loss_vs_ideal_output": ideal_stoi - score,
-                            "ideal_pesq_vs_ideal_output": ideal_pesq,
-                            "pesq_vs_ideal_output": pesq_score_mean,
-                            "pesq_loss_vs_ideal_output": ideal_pesq - pesq_score_mean,
                         }
                     )
     return summarize_source_delay_stoi_rows(rows)
@@ -702,9 +674,6 @@ def summarize_source_delay_stoi_rows(rows: list[dict]) -> list[dict]:
         "ideal_stoi_vs_ideal_output",
         "stoi_vs_ideal_output",
         "stoi_loss_vs_ideal_output",
-        "ideal_pesq_vs_ideal_output",
-        "pesq_vs_ideal_output",
-        "pesq_loss_vs_ideal_output",
     ]
     summary = []
     for key, values in sorted(grouped.items(), key=_summary_sort_key):
@@ -933,14 +902,12 @@ def write_separator_figures(
         and float(row["orientation_delay_ms"]) == representative_orientation_delay
     ]
     if representative_rows and "stoi_loss_vs_ideal_output_mean" in representative_rows[0]:
-        fig, axes = plt.subplots(2, len(velocities), figsize=(12.0, 6.1), constrained_layout=True)
+        fig, axes = plt.subplots(1, len(velocities), figsize=(12.0, 3.8), constrained_layout=True)
         if len(velocities) == 1:
-            axes = np.asarray(axes).reshape(2, 1)
+            axes = np.asarray([axes])
         plotted_stoi_losses: list[float] = []
-        plotted_pesq_losses: list[float] = []
         for column, velocity in enumerate(velocities):
-            stoi_ax = axes[0, column]
-            pesq_ax = axes[1, column]
+            ax = axes[column]
             rows = [
                 row
                 for row in representative_rows
@@ -955,11 +922,9 @@ def write_separator_figures(
                     continue
                 x = [float(row["source_estimate_delay_ms"]) for row in sdr_rows]
                 stoi_y = [max(0.0, float(row["stoi_loss_vs_ideal_output_mean"])) for row in sdr_rows]
-                pesq_y = [max(0.0, float(row["pesq_loss_vs_ideal_output_mean"])) for row in sdr_rows]
                 plotted_stoi_losses.extend(stoi_y)
-                plotted_pesq_losses.extend(pesq_y)
                 label = _display_sdr_label(sdr_label)
-                stoi_ax.plot(
+                ax.plot(
                     x,
                     stoi_y,
                     marker="o",
@@ -967,32 +932,20 @@ def write_separator_figures(
                     markersize=3.4,
                     label=label,
                 )
-                pesq_ax.plot(
-                    x,
-                    pesq_y,
-                    marker="o",
-                    linewidth=1.7,
-                    markersize=3.4,
-                    label=label,
-                )
-            stoi_ax.set_title(f"{velocity:.0f} deg/s")
-            for ax in (stoi_ax, pesq_ax):
-                ax.axhline(0.0, color="#555555", linestyle=":", linewidth=0.9)
-                ax.set_xlabel("source-estimate delay (ms)")
-                ax.set_xticks(source_delays, [f"{delay:.0f}" for delay in source_delays])
-                ax.set_xlim(min(source_delays), max(source_delays))
+            ax.set_title(f"{velocity:.0f} deg/s")
+            ax.axhline(0.0, color="#555555", linestyle=":", linewidth=0.9)
+            ax.set_xlabel("source-estimate delay (ms)")
+            ax.set_xticks(source_delays, [f"{delay:.0f}" for delay in source_delays])
+            ax.set_xlim(min(source_delays), max(source_delays))
             if column == 0:
-                stoi_ax.set_ylabel("STOI loss vs ideal output")
-                pesq_ax.set_ylabel("PESQ loss vs ideal output")
+                ax.set_ylabel("STOI loss vs ideal output")
             if column == len(velocities) - 1:
-                stoi_ax.legend(title="separator SDR (dB)", frameon=False, fontsize=8)
+                ax.legend(title="separator SDR (dB)", frameon=False, fontsize=8)
         stoi_ymax = max(0.02, max(plotted_stoi_losses) * 1.12)
-        pesq_ymax = max(0.1, max(plotted_pesq_losses) * 1.12)
         for column in range(len(velocities)):
-            axes[0, column].set_ylim(0.0, stoi_ymax)
-            axes[1, column].set_ylim(0.0, pesq_ymax)
+            axes[column].set_ylim(0.0, stoi_ymax)
         fig.suptitle(
-            f"Source-overlay degradation vs ideal output, sigma={representative_sigma:.0f} deg",
+            f"STOI degradation vs ideal source-overlay output, sigma={representative_sigma:.0f} deg",
         )
     else:
         main_source_delays = sorted(float(value) for value in config["source_estimate_delay_ms"])
@@ -1173,7 +1126,7 @@ def _summary_markdown(
         "",
         "`kappa = 10 ** (-separator_sdr_db / 20)` for finite SDR values. `separator_sdr_db = inf` gives `kappa = 0`, meaning the ideal no-leakage separator. It is not a finite SDR greater than 20 dB.",
         "",
-        "The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis. The source-delay figure uses STOI and PESQ to compare a degraded source-overlay output against the ideal zero-delay, no-leakage source-overlay output.",
+        "The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis. The source-delay figure uses STOI to compare a degraded source-overlay output against the ideal zero-delay, no-leakage source-overlay output.",
         "",
         "## Ideal Separator Baseline",
         "",
@@ -1242,7 +1195,7 @@ def _summary_markdown(
             "- The main degradation axis in this experiment is separator SDR, not source-estimate delay. A common delay applied to both source estimates changes absolute timing, but it has little effect on TIR because target and interference are delayed together.",
         "- Increasing leakage raises the residual contribution of the non-target source inside each separated estimate.",
             "- Increasing source-estimate delay shifts the separator reinforcement relative to the live binaural scene.",
-            "- The source-delay impact figure uses an overlay model: `output = live_scene + (gain - 1) * separated_estimate`, and compares each condition against the ideal zero-delay, no-leakage overlay using STOI and PESQ.",
+            "- The source-delay impact figure uses an overlay model: `output = live_scene + (gain - 1) * separated_estimate`, and compares each condition against the ideal zero-delay, no-leakage overlay using STOI.",
             "- TIR is intentionally not used in the source-delay panel because a common delay applied to both target and interference estimates can make finite-window TIR changes small and hard to interpret.",
             "- The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.",
         ]

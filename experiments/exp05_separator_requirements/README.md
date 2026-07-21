@@ -126,8 +126,8 @@ x 100 speech pairs
 = 52,500 detailed rows
 ```
 
-The source-delay figure evaluates the same 0-200 ms delay range with STOI and
-PESQ diagnostics against the same ideal source-overlay reference:
+The source-delay figure evaluates the same 0-200 ms delay range with STOI
+against the same ideal source-overlay reference:
 
 ```yaml
 figures:
@@ -206,8 +206,8 @@ enhancement. A value of `1.0` means the condition retained all TIR improvement
 obtained with the ideal no-leakage separator; `0.9` means it retained 90% of
 that ideal benefit.
 
-`exp05_source_delay_impact` shows STOI loss and PESQ loss for the representative
-sigma. Both rows use the same reference: the ideal source-overlay output, i.e.
+`exp05_source_delay_impact` shows STOI loss for the representative
+sigma. It uses the ideal source-overlay output as its reference, i.e.
 live binaural scene plus zero-delay, no-leakage separator reinforcement
 following the ideal head orientation. Each degraded condition keeps the live
 scene unchanged and overlays the delayed/leaky separator estimate:
@@ -216,11 +216,9 @@ scene unchanged and overlays the delayed/leaky separator estimate:
 output = live_scene + (gain - 1) * separated_estimate
 ```
 
-The upper row reports STOI loss relative to that ideal output. The lower row
-reports PESQ loss against the same ideal output, after wideband 16 kHz
-resampling. This intentionally replaces the earlier physical-target SI-SDR
-diagnostic, which compared against a different target and was overly sensitive
-to sample-level timing offsets.
+The plot reports STOI loss relative to that ideal output. This intentionally
+replaces the earlier physical-target SI-SDR diagnostic, which compared against a
+different target and was overly sensitive to sample-level timing offsets.
 
 If the requirement table reports `inf`, the finite separator SDR values tested
 up to 20 dB did not satisfy the criterion, but the ideal no-leakage condition
@@ -234,7 +232,7 @@ delay and sigma.
 - The same source gain is applied to both ears of a source image.
 - Analytical ITD/ILD rendering is not used.
 - TIR is mostly sensitive to leakage, not to a common delay applied to both
-  separated estimates. The source-delay figure therefore uses STOI and PESQ
+  separated estimates. The source-delay figure therefore uses STOI
   relative to the ideal overlay output to show how separator latency degrades
   the final enhanced scene.
 - A condition marked `not_met` means even the ideal no-leakage separator did

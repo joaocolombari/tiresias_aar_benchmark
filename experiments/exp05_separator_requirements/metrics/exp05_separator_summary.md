@@ -29,7 +29,7 @@ Source azimuths are `-30 deg` and `+30 deg`; the earlier `45 deg` protocol is no
 
 `kappa = 10 ** (-separator_sdr_db / 20)` for finite SDR values. `separator_sdr_db = inf` gives `kappa = 0`, meaning the ideal no-leakage separator. It is not a finite SDR greater than 20 dB.
 
-The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis. The source-delay figure uses STOI and SI-SDR to compare a degraded source-overlay output against the ideal zero-delay, no-leakage source-overlay output.
+The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis. The source-delay figure uses STOI to compare a degraded source-overlay output against the ideal zero-delay, no-leakage source-overlay output.
 
 ## Ideal Separator Baseline
 
@@ -145,6 +145,6 @@ The table reports the lowest separator SDR that satisfies both criteria for each
 - The main degradation axis in this experiment is separator SDR, not source-estimate delay. A common delay applied to both source estimates changes absolute timing, but it has little effect on TIR because target and interference are delayed together.
 - Increasing leakage raises the residual contribution of the non-target source inside each separated estimate.
 - Increasing source-estimate delay shifts the separator reinforcement relative to the live binaural scene.
-- The source-delay impact figure uses an overlay model: `output = live_scene + (gain - 1) * separated_estimate`, and compares each condition against the ideal zero-delay, no-leakage overlay using STOI and SI-SDR.
+- The source-delay impact figure uses an overlay model: `output = live_scene + (gain - 1) * separated_estimate`, and compares each condition against the ideal zero-delay, no-leakage overlay using STOI.
 - TIR is intentionally not used in the source-delay panel because a common delay applied to both target and interference estimates can make finite-window TIR changes small and hard to interpret.
 - The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.

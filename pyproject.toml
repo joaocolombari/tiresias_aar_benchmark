@@ -19,7 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 ble = ["bleak>=0.21"]
 acquisition = ["sounddevice>=0.4.6"]
-metrics = ["pystoi>=0.4", "pesq>=0.0.4"]
+metrics = ["pystoi>=0.4"]
 dev = ["ruff>=0.5", "pytest>=8"]
 
 [project.scripts]

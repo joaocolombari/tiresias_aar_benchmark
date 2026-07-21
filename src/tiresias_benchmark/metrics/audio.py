@@ -43,18 +43,6 @@ def stoi_score(estimate: np.ndarray, reference: np.ndarray, sample_rate_hz: int)
     return float(stoi(reference[:n], estimate[:n], sample_rate_hz, extended=False))
 
 
-def pesq_score(estimate: np.ndarray, reference: np.ndarray, sample_rate_hz: int) -> float:
-    try:
-        from pesq import pesq
-    except ImportError as exc:
-        raise RuntimeError("PESQ requires installing the 'metrics' optional dependency") from exc
-    if sample_rate_hz not in (8000, 16000):
-        raise ValueError("PESQ requires 8000 Hz narrowband or 16000 Hz wideband audio")
-    mode = "wb" if sample_rate_hz == 16000 else "nb"
-    n = min(len(estimate), len(reference))
-    return float(pesq(sample_rate_hz, reference[:n], estimate[:n], mode))
-
-
 def normalized_rms_error(estimate: np.ndarray, reference: np.ndarray, eps: float = 1e-12) -> float:
     n = min(len(estimate), len(reference))
     err = np.asarray(estimate[:n], dtype=float) - np.asarray(reference[:n], dtype=float)
