@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tiresias_benchmark.experiments.experiment_01_figures import (
     generate_experiment_01_figures,
+    generate_experiment_01_review_figures,
 )
 
 
@@ -58,6 +59,15 @@ class Experiment01FigureTests(unittest.TestCase):
             self.assertIn("| ascending |", table)
             self.assertIn("| descending |", table)
             self.assertIn("| randomized |", table)
+
+            review_outputs = generate_experiment_01_review_figures(
+                config,
+                processed_dir=processed,
+                raw_dir=raw,
+                output_dir=figures,
+            )
+            for path in review_outputs.__dict__.values():
+                self.assertTrue(path.exists(), path)
 
     def _write_segmented(self, path: Path, run_type: str, positions: list[tuple[int, int, bool]]) -> None:
         fieldnames = [

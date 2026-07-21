@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\caption{BLE notification timing during Experiment 1. Packet loss is computed relative to the modal sequence-number increment.}
+\label{tab:exp01_ble_timing}
+\begin{tabular}{lrrrr}
+\toprule
+Run & Rate (Hz) & P95 interval (ms) & P95 jitter (ms) & Loss (\%) \\
+\midrule
+ascending & 40.8 & 37.5 & 17.6 & 0.00 \\
+descending & 40.7 & 43.9 & 22.4 & 0.20 \\
+randomized & 40.7 & 40.7 & 22.3 & 0.13 \\
+\bottomrule
+\end{tabular}
+\end{table}

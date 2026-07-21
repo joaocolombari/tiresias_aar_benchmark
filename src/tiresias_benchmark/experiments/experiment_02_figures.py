@@ -17,6 +17,12 @@ class Experiment02FigureOutputs:
     results_table_md: Path
 
 
+@dataclass(frozen=True)
+class Experiment02ReviewFigureOutputs:
+    reconvolution_review_png: Path
+    reconvolution_review_svg: Path
+
+
 def generate_experiment_02_validation_report(
     config: dict,
     *,
@@ -64,6 +70,42 @@ def generate_experiment_02_validation_report(
     outputs.metrics_json.write_text(json.dumps(metrics, indent=2) + "\n")
     outputs.results_table_md.write_text(_results_markdown(metrics, outputs) + "\n")
     _write_reconvolution_figure(rows, metrics, outputs)
+    return outputs
+
+
+def generate_experiment_02_review_validation_figure(
+    config: dict,
+    *,
+    session_id: str | None = None,
+    metrics_dir: Path | None = None,
+    output_dir: Path | None = None,
+    overwrite: bool = False,
+) -> Experiment02ReviewFigureOutputs:
+    outputs_config = config.get("outputs", {})
+    metrics_root = metrics_dir or Path(
+        outputs_config.get("metrics_root", "experiments/exp02_brir_measurement/metrics")
+    )
+    figures_root = output_dir or Path(
+        outputs_config.get("figures_root", "experiments/exp02_brir_measurement/figures")
+    )
+    session_id = session_id or _latest_validation_session(metrics_root)
+    validation_csv = metrics_root / session_id / "brir_validation_summary.csv"
+    if not validation_csv.exists():
+        raise FileNotFoundError(
+            f"BRIR validation summary not found: {validation_csv}. Run `brir-validate` first."
+        )
+    rows = _load_validation_rows(validation_csv)
+    if not rows:
+        raise ValueError(f"no rows found in {validation_csv}")
+
+    session_figures_dir = figures_root / session_id
+    outputs = Experiment02ReviewFigureOutputs(
+        reconvolution_review_png=session_figures_dir / "exp02_reconvolution_validation_review.png",
+        reconvolution_review_svg=session_figures_dir / "exp02_reconvolution_validation_review.svg",
+    )
+    _ensure_can_write(outputs, overwrite=overwrite)
+    session_figures_dir.mkdir(parents=True, exist_ok=True)
+    _write_reconvolution_review_figure(rows, outputs)
     return outputs
 
 
@@ -478,6 +520,175 @@ def _write_reconvolution_figure(
     fig.savefig(outputs.reconvolution_png, dpi=220)
     fig.savefig(outputs.reconvolution_svg)
     plt.close(fig)
+
+
+def _write_reconvolution_review_figure(
+    rows: list[dict],
+    outputs: Experiment02ReviewFigureOutputs,
+) -> None:
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise RuntimeError(
+            "matplotlib is required for Experiment 2 reconvolution review figures"
+        ) from exc
+
+    _configure_review_plot_style(plt)
+    angles = sorted({int(row["angle_nominal_deg"]) for row in rows})
+    colors = {"same_trial": "#666666", "cross_repetition": "#0072B2"}
+    labels = {"same_trial": "same trial", "cross_repetition": "cross repetition"}
+
+    fig, axes = plt.subplots(1, 2, figsize=(7.3, 3.15))
+    ax_sdr, ax_corr = axes
+
+    sdr_bounds = []
+    corr_bounds = []
+    for validation_type in ("same_trial", "cross_repetition"):
+        sdr = _angle_metric_series(rows, angles, validation_type, "mean_prediction_sdr_db")
+        corr = _angle_metric_series(rows, angles, validation_type, "mean_corr")
+        color = colors[validation_type]
+
+        _plot_mean_with_sd_band(ax_sdr, angles, sdr, color=color, label=labels[validation_type])
+        _plot_mean_with_sd_band(ax_corr, angles, corr, color=color, label=labels[validation_type])
+        sdr_bounds.extend(_series_bounds(sdr))
+        corr_bounds.extend(_series_bounds(corr))
+
+    ax_sdr.set_title("A. Reconvolution SDR")
+    ax_sdr.set_xlabel("Nominal platform angle (deg)")
+    ax_sdr.set_ylabel("Prediction SDR (dB)")
+    ax_sdr.set_xticks(range(0, 361, 60))
+    if sdr_bounds:
+        y_min = min(sdr_bounds)
+        y_max = max(sdr_bounds)
+        pad = max(0.4, 0.08 * (y_max - y_min))
+        ax_sdr.set_ylim(y_min - pad, y_max + pad)
+
+    ax_corr.set_title("B. Waveform correlation")
+    ax_corr.set_xlabel("Nominal platform angle (deg)")
+    ax_corr.set_ylabel("Correlation")
+    ax_corr.set_xticks(range(0, 361, 60))
+    if corr_bounds:
+        y_min = min(corr_bounds)
+        y_max = max(corr_bounds)
+        pad = max(0.00025, 0.12 * (y_max - y_min))
+        ax_corr.set_ylim(max(0.0, y_min - pad), min(1.0005, y_max + pad))
+
+    for ax in axes:
+        ax.set_xlim(-5, 365)
+        ax.grid(True, alpha=0.32, linewidth=0.65)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    handles, labels_text = ax_sdr.get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels_text,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.015),
+        ncol=2,
+        frameon=False,
+        fontsize=8.2,
+    )
+    fig.text(
+        0.5,
+        0.01,
+        "Each trial first averages L/R microphones; lines show angle means and shaded bands show +/-1 SD across speaker/repetition cases.",
+        ha="center",
+        va="bottom",
+        fontsize=7.2,
+        color="#555555",
+    )
+    fig.subplots_adjust(left=0.085, right=0.99, bottom=0.22, top=0.78, wspace=0.34)
+    outputs.reconvolution_review_png.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(outputs.reconvolution_review_png, bbox_inches="tight", dpi=300)
+    fig.savefig(outputs.reconvolution_review_svg, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _configure_review_plot_style(plt) -> None:
+    try:
+        plt.style.use("seaborn-v0_8-whitegrid")
+    except OSError:
+        plt.style.use("default")
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 9,
+            "axes.titlesize": 10,
+            "axes.labelsize": 9,
+            "axes.titleweight": "bold",
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+            "legend.fontsize": 8,
+            "figure.dpi": 160,
+            "savefig.dpi": 300,
+            "svg.fonttype": "none",
+        }
+    )
+
+
+def _angle_metric_series(
+    rows: list[dict],
+    angles: list[int],
+    validation_type: str,
+    field: str,
+) -> list[dict]:
+    series = []
+    for angle in angles:
+        values = [
+            float(row[field])
+            for row in rows
+            if int(row["angle_nominal_deg"]) == angle
+            and row["validation_type"] == validation_type
+            and row.get(field) is not None
+            and math.isfinite(float(row[field]))
+        ]
+        if values:
+            avg = mean(values)
+            sd = pstdev(values) if len(values) > 1 else 0.0
+            series.append({"angle": angle, "mean": avg, "sd": sd})
+        else:
+            series.append({"angle": angle, "mean": None, "sd": None})
+    return series
+
+
+def _plot_mean_with_sd_band(ax, angles: list[int], series: list[dict], *, color: str, label: str) -> None:
+    x = np_array([angle for angle, item in zip(angles, series) if item["mean"] is not None])
+    y = np_array([item["mean"] for item in series if item["mean"] is not None])
+    sd = np_array([item["sd"] or 0.0 for item in series if item["mean"] is not None])
+    if len(x) == 0:
+        return
+    ax.fill_between(x, y - sd, y + sd, color=color, alpha=0.16, linewidth=0)
+    ax.plot(
+        x,
+        y,
+        marker="o",
+        markersize=3.4,
+        linewidth=1.65,
+        color=color,
+        label=label,
+    )
+
+
+def _series_bounds(series: list[dict]) -> list[float]:
+    bounds = []
+    for item in series:
+        if item["mean"] is None:
+            continue
+        sd = item["sd"] or 0.0
+        bounds.extend([item["mean"] - sd, item["mean"] + sd])
+    return bounds
+
+
+def np_array(values: list[float]) -> object:
+    try:
+        import numpy as np
+    except ImportError as exc:
+        raise RuntimeError("numpy is required for Experiment 2 review figures") from exc
+    return np.array(values, dtype=float)
 
 
 def _mean_metric(rows: list[dict], field: str) -> float | None:

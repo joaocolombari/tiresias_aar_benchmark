@@ -37,6 +37,17 @@ class FigureOutputs:
     results_table_md: Path
 
 
+@dataclass(frozen=True)
+class ReviewFigureOutputs:
+    orientation_summary_png: Path
+    orientation_summary_svg: Path
+    ble_timing_png: Path
+    ble_timing_svg: Path
+    ble_interval_distribution_png: Path
+    ble_interval_distribution_svg: Path
+    ble_timing_latex_txt: Path
+
+
 def generate_experiment_01_figures(
     config: dict,
     *,
@@ -105,6 +116,63 @@ def generate_experiment_01_figures(
         outputs.orientation_summary_svg.write_text(_orientation_summary_svg(position_rows))
         outputs.drift_correction_svg.write_text(_drift_correction_svg(corrected_samples, group_models))
         outputs.ble_timing_svg.write_text(_ble_timing_svg(ble_intervals, ble_rows))
+    return outputs
+
+
+def generate_experiment_01_review_figures(
+    config: dict,
+    *,
+    input_csvs: list[Path] | None = None,
+    processed_dir: Path | None = None,
+    raw_dir: Path | None = None,
+    output_dir: Path | None = None,
+    require_all_runs: bool = True,
+    sign_mode: str = "auto",
+    overwrite: bool = False,
+) -> ReviewFigureOutputs:
+    base = Path("experiments/exp01_orientation_characterization")
+    processed_dir = processed_dir or base / "processed"
+    raw_dir = raw_dir or base / "raw"
+    output_dir = output_dir or base / "figures"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    segmented_paths = input_csvs or _latest_segmented_paths(
+        processed_dir,
+        runs=list(config.get("runs", ["ascending", "descending", "randomized"])),
+        require_all=require_all_runs,
+    )
+    if not segmented_paths:
+        raise FileNotFoundError("no segmented Experiment 1 CSV files found")
+
+    samples = _load_samples(segmented_paths, config)
+    corrected_samples, _group_models = _apply_groupwise_drift_correction(
+        samples,
+        sign_mode=sign_mode,
+    )
+    position_rows = _position_summary_rows(corrected_samples)
+    ble_rows, ble_intervals = _ble_summary_rows(
+        segmented_paths,
+        raw_dir=raw_dir,
+        config=config,
+    )
+
+    outputs = ReviewFigureOutputs(
+        orientation_summary_png=output_dir / "exp01_orientation_summary_review.png",
+        orientation_summary_svg=output_dir / "exp01_orientation_summary_review.svg",
+        ble_timing_png=output_dir / "exp01_ble_timing_review.png",
+        ble_timing_svg=output_dir / "exp01_ble_timing_review.svg",
+        ble_interval_distribution_png=output_dir / "exp01_ble_interval_distribution_review.png",
+        ble_interval_distribution_svg=output_dir / "exp01_ble_interval_distribution_review.svg",
+        ble_timing_latex_txt=output_dir / "exp01_ble_timing_table_latex.txt",
+    )
+    _ensure_can_write(outputs, overwrite=overwrite)
+
+    if not _matplotlib_available():
+        raise RuntimeError(
+            "matplotlib is required for review figures. "
+            "Install dependencies with `python -m pip install -e .` and rerun."
+        )
+    _write_review_matplotlib_figures(outputs, position_rows, ble_intervals, ble_rows)
     return outputs
 
 
@@ -615,6 +683,397 @@ def _write_matplotlib_figures(
     _plot_orientation_summary_matplotlib(plt, outputs.orientation_summary_svg, position_rows)
     _plot_drift_correction_matplotlib(plt, outputs.drift_correction_svg, samples, models)
     _plot_ble_timing_matplotlib(plt, outputs.ble_timing_svg, intervals_by_run, ble_rows)
+
+
+def _write_review_matplotlib_figures(
+    outputs: ReviewFigureOutputs,
+    position_rows: list[dict],
+    intervals_by_run: dict[str, list[float]],
+    ble_rows: list[dict],
+) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    _configure_review_plot_style(plt)
+    _plot_orientation_summary_review_matplotlib(
+        plt,
+        [outputs.orientation_summary_png, outputs.orientation_summary_svg],
+        position_rows,
+    )
+    _plot_ble_timing_review_matplotlib(
+        plt,
+        [outputs.ble_timing_png, outputs.ble_timing_svg],
+        intervals_by_run,
+        ble_rows,
+    )
+    _plot_ble_interval_distribution_review_matplotlib(
+        plt,
+        [outputs.ble_interval_distribution_png, outputs.ble_interval_distribution_svg],
+        intervals_by_run,
+    )
+    outputs.ble_timing_latex_txt.write_text(_ble_timing_latex_table(ble_rows) + "\n")
+
+
+def _configure_review_plot_style(plt) -> None:
+    try:
+        plt.style.use("seaborn-v0_8-whitegrid")
+    except OSError:
+        plt.style.use("default")
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 9,
+            "axes.titlesize": 10,
+            "axes.labelsize": 9,
+            "axes.titleweight": "bold",
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+            "legend.fontsize": 8,
+            "figure.titlesize": 11,
+            "figure.dpi": 160,
+            "savefig.dpi": 300,
+            "svg.fonttype": "none",
+        }
+    )
+
+
+def _save_review_figure(fig, paths: list[Path]) -> None:
+    for path in paths:
+        fig.savefig(path, bbox_inches="tight")
+
+
+def _plot_orientation_summary_review_matplotlib(plt, paths: list[Path], rows: list[dict]) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(7.25, 3.05))
+    ax_yaw, ax_err = axes
+    run_order = [run for run in ["ascending", "descending", "randomized"] if any(row["run_type"] == run for row in rows)]
+
+    for run in run_order:
+        run_rows = sorted(
+            [row for row in rows if row["run_type"] == run],
+            key=_plot_x_for_position_row,
+        )
+        color = RUN_COLORS.get(run, "#333333")
+        nonclosure = [row for row in run_rows if not row["is_closure_measurement"]]
+        closure = [row for row in run_rows if row["is_closure_measurement"]]
+        ax_yaw.scatter(
+            [_plot_x_for_position_row(row) for row in nonclosure],
+            [_plot_y_from_error(row, "error_drift_corrected_mean_deg") for row in nonclosure],
+            marker="o",
+            s=16,
+            color=color,
+            edgecolor="white",
+            linewidth=0.35,
+            alpha=0.86,
+            label=run,
+        )
+        if closure:
+            ax_yaw.scatter(
+                [_plot_x_for_position_row(row) for row in closure],
+                [_plot_y_from_error(row, "error_drift_corrected_mean_deg") for row in closure],
+                marker="s",
+                s=30,
+                color=color,
+                edgecolor="white",
+                linewidth=0.35,
+                alpha=0.92,
+                zorder=4,
+            )
+        ax_err.scatter(
+            [_plot_x_for_position_row(row) for row in run_rows],
+            [row["error_drift_corrected_mean_deg"] for row in run_rows],
+            marker="o",
+            s=16,
+            color=color,
+            edgecolor="white",
+            linewidth=0.35,
+            alpha=0.72,
+        )
+
+    by_angle = _between_run_error_summary(rows)
+    if by_angle:
+        x = np.array([row["reference_angle_commanded_deg"] for row in by_angle])
+        yaw_mean = x + np.array([row["mean_error_drift_corrected_deg"] for row in by_angle])
+        yaw_sd = np.array([row["sd_error_drift_corrected_deg"] for row in by_angle])
+        ax_yaw.errorbar(
+            x,
+            yaw_mean,
+            yerr=yaw_sd,
+            fmt="o-",
+            color="#202020",
+            ecolor="#606060",
+            elinewidth=0.8,
+            capsize=2.2,
+            markersize=3.3,
+            linewidth=1.15,
+            label="mean +/- SD",
+            zorder=5,
+        )
+        ax_err.errorbar(
+            x,
+            [row["mean_error_drift_corrected_deg"] for row in by_angle],
+            yerr=yaw_sd,
+            fmt="o-",
+            color="#202020",
+            ecolor="#606060",
+            elinewidth=0.8,
+            capsize=2.2,
+            markersize=3.3,
+            linewidth=1.15,
+            label="mean +/- SD",
+            zorder=5,
+        )
+
+    ax_yaw.plot([0, 360], [0, 360], color="#222222", linestyle=":", linewidth=1.15, label="ideal")
+    ax_yaw.text(
+        0.045,
+        0.96,
+        _linearity_rms_annotation(rows, run_order),
+        transform=ax_yaw.transAxes,
+        va="top",
+        ha="left",
+        fontsize=7.4,
+        linespacing=1.28,
+        bbox={
+            "boxstyle": "round,pad=0.32",
+            "facecolor": "white",
+            "edgecolor": "#9a9a9a",
+            "linewidth": 0.65,
+            "alpha": 0.9,
+        },
+    )
+    ax_yaw.set_title("A. Yaw versus platform angle")
+    ax_yaw.set_xlabel("Physical angle (deg)")
+    ax_yaw.set_ylabel("Drift-corrected yaw (deg)")
+    ax_yaw.set_xlim(-5, 365)
+    ax_yaw.set_ylim(-8, 368)
+    ax_yaw.set_xticks(np.arange(0, 361, 60))
+    ax_yaw.set_yticks(np.arange(0, 361, 90))
+
+    ax_err.axhline(0, color="#222222", linewidth=0.9)
+    ax_err.set_title("B. Circular error after correction")
+    ax_err.set_xlabel("Physical angle (deg)")
+    ax_err.set_ylabel("Error (deg)")
+    ax_err.set_xlim(-5, 365)
+    error_extent = max(
+        2.5,
+        max(abs(float(row["error_drift_corrected_mean_deg"])) for row in rows) + 0.5,
+    )
+    ax_err.set_ylim(-error_extent, error_extent)
+    ax_err.set_xticks(np.arange(0, 361, 60))
+
+    for ax in axes:
+        ax.grid(True, alpha=0.32, linewidth=0.65)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    handles, labels = ax_yaw.get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=5,
+        frameon=False,
+        fontsize=8.2,
+    )
+    fig.subplots_adjust(left=0.085, right=0.99, bottom=0.18, top=0.78, wspace=0.34)
+    _save_review_figure(fig, paths)
+    plt.close(fig)
+
+
+def _linearity_rms_annotation(rows: list[dict], run_order: list[str]) -> str:
+    lines = ["Linear-fit RMS"]
+    for run in run_order:
+        run_rows = [
+            row
+            for row in rows
+            if row["run_type"] == run and not row["is_closure_measurement"]
+        ]
+        if len(run_rows) < 2:
+            continue
+        x = np.array([_plot_x_for_position_row(row) for row in run_rows], dtype=float)
+        y = np.array([_plot_y_from_error(row, "error_drift_corrected_mean_deg") for row in run_rows], dtype=float)
+        slope, intercept = np.polyfit(x, y, deg=1)
+        residual = y - (slope * x + intercept)
+        rms = float(np.sqrt(np.mean(residual * residual)))
+        lines.append(f"{run}: {rms:.2f} deg")
+    return "\n".join(lines)
+
+
+def _plot_ble_timing_review_matplotlib(
+    plt,
+    paths: list[Path],
+    intervals_by_run: dict[str, list[float]],
+    ble_rows: list[dict],
+) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(7.25, 3.0), gridspec_kw={"width_ratios": [1.35, 1.15]})
+    ax_hist, ax_summary = axes
+    bins = np.linspace(0, 80, 49)
+    for run in ["ascending", "descending", "randomized"]:
+        values = intervals_by_run.get(run)
+        if not values:
+            continue
+        ax_hist.hist(
+            values,
+            bins=bins,
+            histtype="step",
+            linewidth=1.5,
+            color=RUN_COLORS.get(run, "#333333"),
+            label=run,
+        )
+    ax_hist.set_title("A. Notification interval distribution")
+    ax_hist.set_xlabel("Receive interval (ms)")
+    ax_hist.set_ylabel("Count")
+    ax_hist.set_xlim(0, 80)
+
+    ordered_ble_rows = [row for run in ["ascending", "descending", "randomized"] for row in ble_rows if row["run_type"] == run]
+    ax_summary.set_title("B. Run-level BLE timing")
+    ax_summary.set_axis_off()
+    headers = [
+        ("Run", 0.03, "left"),
+        ("Hz", 0.45, "right"),
+        ("P95", 0.62, "right"),
+        ("Jitter", 0.80, "right"),
+        ("Loss", 0.97, "right"),
+    ]
+    for label, xpos, align in headers:
+        ax_summary.text(
+            xpos,
+            0.82,
+            label,
+            transform=ax_summary.transAxes,
+            ha=align,
+            va="center",
+            fontsize=7.5,
+            fontweight="bold",
+            color="#222222",
+        )
+    ax_summary.plot([0.03, 0.97], [0.77, 0.77], transform=ax_summary.transAxes, color="#777777", linewidth=0.7)
+    row_y = [0.63, 0.48, 0.33]
+    for y_pos, row in zip(row_y, ordered_ble_rows):
+        run = row["run_type"]
+        color = RUN_COLORS.get(run, "#333333")
+        ax_summary.scatter([0.04], [y_pos], transform=ax_summary.transAxes, color=color, s=28, marker="s")
+        ax_summary.text(0.08, y_pos, run, transform=ax_summary.transAxes, ha="left", va="center", fontsize=7.4)
+        ax_summary.text(
+            0.45,
+            y_pos,
+            f"{float(row['effective_rate_hz']):.1f}",
+            transform=ax_summary.transAxes,
+            ha="right",
+            va="center",
+            fontsize=7.4,
+        )
+        ax_summary.text(
+            0.62,
+            y_pos,
+            f"{float(row['interval_p95_ms']):.1f}",
+            transform=ax_summary.transAxes,
+            ha="right",
+            va="center",
+            fontsize=7.4,
+        )
+        ax_summary.text(
+            0.80,
+            y_pos,
+            f"{float(row['jitter_abs_from_median_p95_ms']):.1f}",
+            transform=ax_summary.transAxes,
+            ha="right",
+            va="center",
+            fontsize=7.4,
+        )
+        ax_summary.text(
+            0.97,
+            y_pos,
+            f"{float(row['packet_loss_percent_relative_to_modal_step']):.2f}%",
+            transform=ax_summary.transAxes,
+            ha="right",
+            va="center",
+            fontsize=7.4,
+        )
+    ax_summary.text(
+        0.03,
+        0.12,
+        "P95 and jitter are in ms. Loss uses modal sequence step.",
+        transform=ax_summary.transAxes,
+        ha="left",
+        va="center",
+        fontsize=7.0,
+        color="#555555",
+    )
+
+    for ax in [ax_hist]:
+        ax.grid(True, alpha=0.32, linewidth=0.65)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+    ax_hist.legend(frameon=False, fontsize=8, loc="upper right")
+    fig.subplots_adjust(left=0.085, right=0.99, bottom=0.2, top=0.86, wspace=0.35)
+    _save_review_figure(fig, paths)
+    plt.close(fig)
+
+
+def _plot_ble_interval_distribution_review_matplotlib(
+    plt,
+    paths: list[Path],
+    intervals_by_run: dict[str, list[float]],
+) -> None:
+    fig, ax = plt.subplots(figsize=(7.25, 2.75))
+    bins = np.linspace(0, 80, 49)
+    for run in ["ascending", "descending", "randomized"]:
+        values = intervals_by_run.get(run)
+        if not values:
+            continue
+        ax.hist(
+            values,
+            bins=bins,
+            histtype="step",
+            linewidth=1.55,
+            color=RUN_COLORS.get(run, "#333333"),
+            label=run,
+        )
+    ax.set_title("BLE notification interval distribution")
+    ax.set_xlabel("Receive interval (ms)")
+    ax.set_ylabel("Count")
+    ax.set_xlim(0, 80)
+    ax.grid(True, alpha=0.32, linewidth=0.65)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.legend(frameon=False, fontsize=8.2, loc="upper right")
+    fig.subplots_adjust(left=0.085, right=0.99, bottom=0.22, top=0.86)
+    _save_review_figure(fig, paths)
+    plt.close(fig)
+
+
+def _ble_timing_latex_table(ble_rows: list[dict]) -> str:
+    ordered = [row for run in ["ascending", "descending", "randomized"] for row in ble_rows if row["run_type"] == run]
+    lines = [
+        r"\begin{table}[t]",
+        r"\centering",
+        r"\caption{BLE notification timing during Experiment 1. Packet loss is computed relative to the modal sequence-number increment.}",
+        r"\label{tab:exp01_ble_timing}",
+        r"\begin{tabular}{lrrrr}",
+        r"\toprule",
+        r"Run & Rate (Hz) & P95 interval (ms) & P95 jitter (ms) & Loss (\%) \\",
+        r"\midrule",
+    ]
+    for row in ordered:
+        lines.append(
+            f"{row['run_type']} & "
+            f"{float(row['effective_rate_hz']):.1f} & "
+            f"{float(row['interval_p95_ms']):.1f} & "
+            f"{float(row['jitter_abs_from_median_p95_ms']):.1f} & "
+            f"{float(row['packet_loss_percent_relative_to_modal_step']):.2f} \\\\"
+        )
+    lines.extend(
+        [
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"\end{table}",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def _plot_orientation_summary_matplotlib(plt, path: Path, rows: list[dict]) -> None:

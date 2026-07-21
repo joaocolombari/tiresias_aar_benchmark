@@ -275,26 +275,47 @@ def cmd_figures_generate(args: argparse.Namespace) -> None:
     try:
         if args.experiment == "1":
             figure_module = import_module("tiresias_benchmark.experiments.experiment_01_figures")
-            outputs = figure_module.generate_experiment_01_figures(
-                config,
-                input_csvs=[Path(item) for item in args.input] if args.input else None,
-                processed_dir=Path(args.processed_dir) if args.processed_dir else None,
-                raw_dir=Path(args.raw_dir) if args.raw_dir else None,
-                output_dir=Path(args.output_dir) if args.output_dir else None,
-                metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
-                require_all_runs=not args.allow_missing_runs,
-                sign_mode=args.sign,
-                overwrite=args.overwrite,
-            )
+            if args.review:
+                outputs = figure_module.generate_experiment_01_review_figures(
+                    config,
+                    input_csvs=[Path(item) for item in args.input] if args.input else None,
+                    processed_dir=Path(args.processed_dir) if args.processed_dir else None,
+                    raw_dir=Path(args.raw_dir) if args.raw_dir else None,
+                    output_dir=Path(args.output_dir) if args.output_dir else None,
+                    require_all_runs=not args.allow_missing_runs,
+                    sign_mode=args.sign,
+                    overwrite=args.overwrite,
+                )
+            else:
+                outputs = figure_module.generate_experiment_01_figures(
+                    config,
+                    input_csvs=[Path(item) for item in args.input] if args.input else None,
+                    processed_dir=Path(args.processed_dir) if args.processed_dir else None,
+                    raw_dir=Path(args.raw_dir) if args.raw_dir else None,
+                    output_dir=Path(args.output_dir) if args.output_dir else None,
+                    metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
+                    require_all_runs=not args.allow_missing_runs,
+                    sign_mode=args.sign,
+                    overwrite=args.overwrite,
+                )
         else:
             figure_module = import_module("tiresias_benchmark.experiments.experiment_02_figures")
-            outputs = figure_module.generate_experiment_02_validation_report(
-                config,
-                session_id=args.session_id,
-                output_dir=Path(args.output_dir) if args.output_dir else None,
-                metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
-                overwrite=args.overwrite,
-            )
+            if args.review:
+                outputs = figure_module.generate_experiment_02_review_validation_figure(
+                    config,
+                    session_id=args.session_id,
+                    output_dir=Path(args.output_dir) if args.output_dir else None,
+                    metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
+                    overwrite=args.overwrite,
+                )
+            else:
+                outputs = figure_module.generate_experiment_02_validation_report(
+                    config,
+                    session_id=args.session_id,
+                    output_dir=Path(args.output_dir) if args.output_dir else None,
+                    metrics_dir=Path(args.metrics_dir) if args.metrics_dir else None,
+                    overwrite=args.overwrite,
+                )
     except (FileExistsError, FileNotFoundError, RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
     print(json.dumps({key: str(value) for key, value in outputs.__dict__.items()}, indent=2))
@@ -486,6 +507,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session-id", help="Experiment 2 session id for BRIR validation figures.")
     p.add_argument("--sign", choices=["auto", "normal", "inverted"], default="auto")
     p.add_argument("--allow-missing-runs", action="store_true")
+    p.add_argument("--review", action="store_true", help="Write Experiment 1 review figures with separate filenames.")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=cmd_figures_generate)
 

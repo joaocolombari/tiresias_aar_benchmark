@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from tiresias_benchmark.experiments.experiment_02_figures import (
+    generate_experiment_02_review_validation_figure,
     generate_experiment_02_validation_report,
 )
 
@@ -37,6 +38,15 @@ class Experiment02FigureTests(unittest.TestCase):
             table = outputs.results_table_md.read_text()
             self.assertIn("Cross-repetition", table)
             self.assertIn("| cross repetition | A |", table)
+
+            review_outputs = generate_experiment_02_review_validation_figure(
+                {},
+                session_id=session,
+                metrics_dir=metrics,
+                output_dir=figures,
+            )
+            self.assertTrue(review_outputs.reconvolution_review_png.exists())
+            self.assertTrue(review_outputs.reconvolution_review_svg.exists())
 
     def _write_validation_csv(self, path: Path, session: str) -> None:
         fieldnames = [
