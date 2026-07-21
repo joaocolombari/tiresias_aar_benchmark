@@ -5,14 +5,18 @@ import numpy as np
 from tiresias_benchmark.experiments.experiment_05 import (
     compute_requirement_rows,
     separator_component_metrics,
+    source_overlay_output_window,
 )
 
 
 class Experiment05SeparatorTests(unittest.TestCase):
     def test_perfect_separator_improves_tir_when_target_gain_is_larger(self):
         samples = 200
-        target = np.ones((samples, 2), dtype=np.float32)
-        interferer = 0.5 * np.ones((samples, 2), dtype=np.float32)
+        time = np.linspace(0.0, 1.0, samples, endpoint=False)
+        target_mono = np.sin(2.0 * np.pi * 5.0 * time)
+        interferer_mono = 0.5 * np.sin(2.0 * np.pi * 11.0 * time)
+        target = np.column_stack([target_mono, target_mono]).astype(np.float32)
+        interferer = np.column_stack([interferer_mono, interferer_mono]).astype(np.float32)
         gain_target = np.full(samples, 2.0)
         gain_interferer = np.full(samples, 0.5)
 
@@ -66,6 +70,31 @@ class Experiment05SeparatorTests(unittest.TestCase):
 
         self.assertLess(leaky["tir_improvement_db"], clean["tir_improvement_db"])
 
+    def test_source_overlay_matches_gain_render_when_estimate_is_ideal(self):
+        samples = 16
+        source_a = np.column_stack(
+            [np.linspace(0.0, 1.0, samples), np.linspace(1.0, 0.0, samples)]
+        ).astype(np.float32)
+        source_b = 0.25 * np.ones((samples, 2), dtype=np.float32)
+        gain_a = np.full(samples, 1.5)
+        gain_b = np.full(samples, 2.0)
+
+        output = source_overlay_output_window(
+            physical_a=source_a,
+            physical_b=source_b,
+            estimate_a=source_a,
+            estimate_b=source_b,
+            gain_a=gain_a,
+            gain_b=gain_b,
+            leakage=0.0,
+            sample_rate_hz=100,
+            switch_time_s=0.0,
+            window_s=1.0,
+        )
+
+        expected = gain_a[:, None] * source_a + gain_b[:, None] * source_b
+        np.testing.assert_allclose(output, expected)
+
     def test_requirement_rows_choose_lowest_acceptable_separator_sdr(self):
         rows = []
         for sdr, retention, sisdr_loss in [
@@ -100,7 +129,7 @@ class Experiment05SeparatorTests(unittest.TestCase):
         self.assertEqual(requirements[0]["minimum_separator_sdr_label"], "10")
         self.assertTrue(requirements[0]["acceptable"])
 
-    def test_requirement_rows_label_ideal_no_leakage_separator_explicitly(self):
+    def test_requirement_rows_preserve_infinite_sdr_label_for_no_leakage_separator(self):
         rows = []
         for label, retention, sisdr_loss in [
             ("0", 0.20, -4.0),
@@ -136,7 +165,7 @@ class Experiment05SeparatorTests(unittest.TestCase):
             },
         )
 
-        self.assertEqual(requirements[0]["minimum_separator_sdr_label"], "ideal")
+        self.assertEqual(requirements[0]["minimum_separator_sdr_label"], "inf")
         self.assertTrue(requirements[0]["acceptable"])
 
 

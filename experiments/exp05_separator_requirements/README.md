@@ -4,7 +4,7 @@ Experiment 5 estimates the minimum source-separation quality required by the
 head-orientation-driven attention pipeline.
 
 It reuses the same measured BRIRs, source geometry, dynamic yaw trajectories,
-sigma values, delay values and 100 LibriSpeech source pairs used in Experiment
+sigma values, delay range and 100 LibriSpeech source pairs used in Experiment
 4. The difference is that Experiment 5 emulates imperfect separated source
 estimates through cross-source leakage and source-estimate delay.
 
@@ -49,8 +49,8 @@ kappa = 10 ** (-separator_sdr_db / 20)
 ```
 
 `separator_sdr_db = inf` gives `kappa = 0`, representing an ideal no-leakage
-separator. In figures and summary tables this condition is displayed as
-`ideal`; it is not a finite separator SDR greater than 20 dB.
+separator. It is displayed as `inf` in figures and summary tables; it is not a
+finite separator SDR greater than 20 dB.
 
 ## Relation To Experiment 4
 
@@ -67,9 +67,11 @@ orientation_delay_ms = 0
 source_estimate_delay_ms = [0, 20, 40, 80, 120, 160, 200]
 ```
 
-The delay values match Experiment 4 so the two analyses can be compared in the
-paper. If needed, `orientation_delay_ms` can be expanded in `config.yaml`, but
-the default run keeps it fixed to avoid mixing two different latency effects.
+The primary delay values preserve the same 0-200 ms range used for the latency
+analysis, so the two experiments can still be compared in the paper. The
+source-delay figure uses STOI over that same 0-200 ms range. If needed,
+`orientation_delay_ms` can be expanded in `config.yaml`, but the default run
+keeps it fixed to avoid mixing two different latency effects.
 
 ## Required Inputs
 
@@ -124,11 +126,21 @@ x 100 speech pairs
 = 52,500 detailed rows
 ```
 
+The source-delay figure evaluates the same 0-200 ms delay range with STOI and
+PESQ diagnostics against the same ideal source-overlay reference:
+
+```yaml
+figures:
+  source_delay_metric: stoi_vs_ideal_output
+  source_delay_plot_delay_ms: [0, 20, 40, 80, 120, 160, 200]
+```
+
 ## Outputs
 
 ```text
 processed/exp05_separator_results.csv
 metrics/exp05_separator_summary_by_condition.csv
+metrics/exp05_source_delay_plot_summary.csv
 metrics/exp05_separator_requirements.csv
 metrics/exp05_separator_summary.json
 metrics/exp05_separator_summary.md
@@ -161,7 +173,7 @@ Important columns:
 
 ## Requirement Criterion
 
-The requirement table reports the lowest separator setting that satisfies both:
+The requirement table reports the lowest separator SDR that satisfies both:
 
 ```text
 TIR retention >= 0.90
@@ -194,19 +206,26 @@ enhancement. A value of `1.0` means the condition retained all TIR improvement
 obtained with the ideal no-leakage separator; `0.9` means it retained 90% of
 that ideal benefit.
 
-`exp05_source_delay_impact` shows the impact of source-estimate delay for the
-representative sigma, always relative to the `0 ms` delay case at the same
-separator setting. The upper row shows signed TIR-loss change; values near zero
-mean the source delay did not materially change target/interference balance,
-and slightly negative values are possible because the metric is evaluated in a
-finite post-switch window. The lower row shows additional physical-target
-SI-SDR loss, which captures the temporal misalignment between a delayed
-separated reinforcement signal and the non-delayed acoustic scene.
+`exp05_source_delay_impact` shows STOI loss and PESQ loss for the representative
+sigma. Both rows use the same reference: the ideal source-overlay output, i.e.
+live binaural scene plus zero-delay, no-leakage separator reinforcement
+following the ideal head orientation. Each degraded condition keeps the live
+scene unchanged and overlays the delayed/leaky separator estimate:
 
-If the requirement table reports `ideal`, the finite separator SDR values
-tested up to 20 dB did not satisfy the criterion, but the ideal no-leakage
-condition did. If it reports `not_met`, even the no-leakage condition failed
-under that delay and sigma.
+```text
+output = live_scene + (gain - 1) * separated_estimate
+```
+
+The upper row reports STOI loss relative to that ideal output. The lower row
+reports PESQ loss against the same ideal output, after wideband 16 kHz
+resampling. This intentionally replaces the earlier physical-target SI-SDR
+diagnostic, which compared against a different target and was overly sensitive
+to sample-level timing offsets.
+
+If the requirement table reports `inf`, the finite separator SDR values tested
+up to 20 dB did not satisfy the criterion, but the ideal no-leakage condition
+did. If it reports `not_met`, even the no-leakage condition failed under that
+delay and sigma.
 
 ## Interpretation Notes
 
@@ -215,7 +234,8 @@ under that delay and sigma.
 - The same source gain is applied to both ears of a source image.
 - Analytical ITD/ILD rendering is not used.
 - TIR is mostly sensitive to leakage, not to a common delay applied to both
-  separated estimates. The physical-target SI-SDR columns diagnose that
-  absolute timing error.
+  separated estimates. The source-delay figure therefore uses STOI and PESQ
+  relative to the ideal overlay output to show how separator latency degrades
+  the final enhanced scene.
 - A condition marked `not_met` means even the ideal no-leakage separator did
   not satisfy the requirement under that source-estimate delay and sigma.

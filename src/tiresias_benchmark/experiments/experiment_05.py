@@ -19,7 +19,7 @@ from tiresias_benchmark.experiments.experiment_04 import (
     prepare_mono_speech,
     select_speech_pairs,
 )
-from tiresias_benchmark.metrics.audio import si_sdr_db, tir_db, tir_improvement_db
+from tiresias_benchmark.metrics.audio import pesq_score, si_sdr_db, stoi_score, tir_db, tir_improvement_db
 from tiresias_benchmark.separation.leakage import (
     delay_signal_samples,
     leakage_coefficient_from_sdr_db,
@@ -35,6 +35,7 @@ def run(config: dict) -> dict:
 
     processed_csv = processed_dir / "exp05_separator_results.csv"
     summary_csv = metrics_dir / "exp05_separator_summary_by_condition.csv"
+    source_delay_plot_csv = metrics_dir / "exp05_source_delay_plot_summary.csv"
     requirements_csv = metrics_dir / "exp05_separator_requirements.csv"
     summary_json = metrics_dir / "exp05_separator_summary.json"
     summary_md = metrics_dir / "exp05_separator_summary.md"
@@ -49,6 +50,7 @@ def run(config: dict) -> dict:
         [
             processed_csv,
             summary_csv,
+            source_delay_plot_csv,
             requirements_csv,
             summary_json,
             summary_md,
@@ -70,6 +72,7 @@ def run(config: dict) -> dict:
     rows = run_separator_grid(config, speech_pairs, brir_bank)
     summary_rows = summarize_separator_rows(rows)
     requirement_rows = compute_requirement_rows(summary_rows, config)
+    source_delay_plot_rows = build_source_delay_plot_summary(config, speech_pairs, brir_bank)
 
     summary = {
         "experiment_id": config.get("experiment_id", "exp05_separator_requirements"),
@@ -90,6 +93,7 @@ def run(config: dict) -> dict:
         ],
         "processed_csv": str(processed_csv),
         "summary_csv": str(summary_csv),
+        "source_delay_plot_csv": str(source_delay_plot_csv),
         "requirements_csv": str(requirements_csv),
         "summary_md": str(summary_md),
         "figures": {
@@ -104,10 +108,16 @@ def run(config: dict) -> dict:
 
     _write_csv(processed_csv, rows)
     _write_csv(summary_csv, summary_rows)
+    _write_csv(source_delay_plot_csv, source_delay_plot_rows)
     _write_csv(requirements_csv, requirement_rows)
     summary_json.write_text(
         json.dumps(
-            summary | {"condition_summary": summary_rows, "requirements": requirement_rows},
+            summary
+            | {
+                "condition_summary": summary_rows,
+                "source_delay_plot_summary": source_delay_plot_rows,
+                "requirements": requirement_rows,
+            },
             indent=2,
         )
         + "\n"
@@ -116,6 +126,7 @@ def run(config: dict) -> dict:
     write_separator_figures(
         summary_rows,
         requirement_rows,
+        source_delay_plot_rows,
         config,
         heatmap_png,
         heatmap_svg,
@@ -125,6 +136,211 @@ def run(config: dict) -> dict:
         source_delay_svg,
     )
     return summary
+
+
+def build_source_delay_plot_summary(
+    config: dict,
+    speech_pairs: list,
+    brir_bank: dict[str, dict[int, np.ndarray]],
+) -> list[dict]:
+    figure_config = config.get("figures", {})
+    metric = str(figure_config.get("source_delay_metric", "stoi_vs_ideal_output"))
+    if metric == "stoi_vs_ideal_output":
+        return run_source_delay_stoi_grid(config, speech_pairs, brir_bank)
+
+    plot_delays = figure_config.get("source_delay_plot_delay_ms")
+    if not plot_delays:
+        return []
+    plot_config = dict(config)
+    plot_config["sigma_deg"] = [float(figure_config.get("representative_sigma_deg", 20.0))]
+    plot_config["orientation_delay_ms"] = [
+        float(figure_config.get("representative_orientation_delay_ms", 0.0))
+    ]
+    plot_config["source_estimate_delay_ms"] = [float(value) for value in plot_delays]
+    rows = run_separator_grid(plot_config, speech_pairs, brir_bank)
+    return summarize_separator_rows(rows)
+
+
+def run_source_delay_stoi_grid(
+    config: dict,
+    speech_pairs: list,
+    brir_bank: dict[str, dict[int, np.ndarray]],
+) -> list[dict]:
+    import soundfile as sf
+    from scipy.signal import fftconvolve, resample_poly
+
+    figure_config = config.get("figures", {})
+    sample_rate = int(brir_bank["_sample_rate_hz"]["value"][0])
+    sources = {item["name"]: float(item["azimuth_deg"]) for item in config["sources"]}
+    source_a_angle = sources.get("source_a", -30.0)
+    source_b_angle = sources.get("source_b", 30.0)
+    duration_s = float(config.get("speech_duration_s", 6.0))
+    target_samples = int(round(duration_s * sample_rate))
+    bmax_db = float(config.get("bmax_db", 10.0))
+    post_window_s = float(config.get("post_switch_analysis_window_s", 1.0))
+    stoi_sample_rate = 10_000
+    resample_gcd = math.gcd(sample_rate, stoi_sample_rate)
+    stoi_up = stoi_sample_rate // resample_gcd
+    stoi_down = sample_rate // resample_gcd
+    pesq_sample_rate = 16_000
+    pesq_resample_gcd = math.gcd(sample_rate, pesq_sample_rate)
+    pesq_up = pesq_sample_rate // pesq_resample_gcd
+    pesq_down = sample_rate // pesq_resample_gcd
+    representative_sigma = float(figure_config.get("representative_sigma_deg", 20.0))
+    representative_orientation_delay = float(
+        figure_config.get("representative_orientation_delay_ms", 0.0)
+    )
+    plot_delays = figure_config.get("source_delay_plot_delay_ms", config["source_estimate_delay_ms"])
+    source_delays = [float(value) for value in plot_delays]
+    separator_sdrs = list(config["separator_sdr_db"])
+    rows: list[dict] = []
+
+    for pair in speech_pairs:
+        speech_a, fs_a = sf.read(pair.source_a.path, dtype="float32")
+        speech_b, fs_b = sf.read(pair.source_b.path, dtype="float32")
+        speech_a = prepare_mono_speech(speech_a, fs_a, sample_rate, target_samples, resample_poly)
+        speech_b = prepare_mono_speech(speech_b, fs_b, sample_rate, target_samples, resample_poly)
+        convolved_a = convolve_speech_with_brir_bank(speech_a, brir_bank["A"], target_samples, fftconvolve)
+        convolved_b = convolve_speech_with_brir_bank(speech_b, brir_bank["B"], target_samples, fftconvolve)
+
+        for trajectory in build_trajectories(config):
+            t_audio = np.arange(target_samples, dtype=np.float64) / float(sample_rate)
+            yaw_audio = np.interp(t_audio, trajectory.time_s, trajectory.yaw_deg)
+            acoustic_a = interpolate_brir_images(convolved_a, yaw_audio)
+            acoustic_b = interpolate_brir_images(convolved_b, yaw_audio)
+            delayed_sources = {
+                delay_ms: (
+                    delay_signal_samples(acoustic_a, int(round(delay_ms * sample_rate / 1000.0))),
+                    delay_signal_samples(acoustic_b, int(round(delay_ms * sample_rate / 1000.0))),
+                )
+                for delay_ms in source_delays
+            }
+
+            ideal_gain_a_db, ideal_gain_b_db = attention_gain_db_series(
+                trajectory.yaw_deg,
+                source_a_angle,
+                source_b_angle,
+                representative_sigma,
+                bmax_db,
+            )
+            ideal_gain_a_audio = db_to_linear(np.interp(t_audio, trajectory.time_s, ideal_gain_a_db))
+            ideal_gain_b_audio = db_to_linear(np.interp(t_audio, trajectory.time_s, ideal_gain_b_db))
+            ideal_output = source_overlay_output_window(
+                physical_a=acoustic_a,
+                physical_b=acoustic_b,
+                estimate_a=acoustic_a,
+                estimate_b=acoustic_b,
+                gain_a=ideal_gain_a_audio,
+                gain_b=ideal_gain_b_audio,
+                leakage=0.0,
+                sample_rate_hz=sample_rate,
+                switch_time_s=trajectory.switch_time_s,
+                window_s=post_window_s,
+            )
+            ideal_output_stoi = resample_poly(ideal_output, stoi_up, stoi_down, axis=0)
+            ideal_output_pesq = resample_poly(ideal_output, pesq_up, pesq_down, axis=0)
+            ideal_stoi = float(
+                mean(
+                    _bounded_stoi(
+                        ideal_output_stoi[:, ear],
+                        ideal_output_stoi[:, ear],
+                        stoi_sample_rate,
+                    )
+                    for ear in (0, 1)
+                )
+            )
+            ideal_pesq = float(
+                mean(
+                    pesq_score(
+                        ideal_output_pesq[:, ear],
+                        ideal_output_pesq[:, ear],
+                        pesq_sample_rate,
+                    )
+                    for ear in (0, 1)
+                )
+            )
+
+            delayed_yaw = delayed_yaw_series(
+                trajectory.time_s,
+                trajectory.yaw_deg,
+                representative_orientation_delay,
+                mode=str(config.get("delay_mode", "hold")),
+            )
+            gain_a_db, gain_b_db = attention_gain_db_series(
+                delayed_yaw,
+                source_a_angle,
+                source_b_angle,
+                representative_sigma,
+                bmax_db,
+            )
+            gain_a_audio = db_to_linear(np.interp(t_audio, trajectory.time_s, gain_a_db))
+            gain_b_audio = db_to_linear(np.interp(t_audio, trajectory.time_s, gain_b_db))
+
+            for source_delay_ms in source_delays:
+                estimate_a, estimate_b = delayed_sources[source_delay_ms]
+                for separator_sdr in separator_sdrs:
+                    leakage = leakage_coefficient_from_sdr_db(separator_sdr)
+                    output = source_overlay_output_window(
+                        physical_a=acoustic_a,
+                        physical_b=acoustic_b,
+                        estimate_a=estimate_a,
+                        estimate_b=estimate_b,
+                        gain_a=gain_a_audio,
+                        gain_b=gain_b_audio,
+                        leakage=leakage,
+                        sample_rate_hz=sample_rate,
+                        switch_time_s=trajectory.switch_time_s,
+                        window_s=post_window_s,
+                    )
+                    output_stoi = resample_poly(output, stoi_up, stoi_down, axis=0)
+                    output_pesq = resample_poly(output, pesq_up, pesq_down, axis=0)
+                    scores = [
+                        _bounded_stoi(
+                            output_stoi[:, ear],
+                            ideal_output_stoi[:, ear],
+                            stoi_sample_rate,
+                        )
+                        for ear in (0, 1)
+                    ]
+                    score = float(mean(scores))
+                    pesq_scores = [
+                        pesq_score(
+                            output_pesq[:, ear],
+                            ideal_output_pesq[:, ear],
+                            pesq_sample_rate,
+                        )
+                        for ear in (0, 1)
+                    ]
+                    pesq_score_mean = float(mean(pesq_scores))
+                    rows.append(
+                        {
+                            "pair_id": pair.pair_id,
+                            "source_a_sample_id": pair.source_a.sample_id,
+                            "source_b_sample_id": pair.source_b.sample_id,
+                            "trajectory": trajectory.name,
+                            "angular_velocity_deg_s": trajectory.velocity_deg_s,
+                            "sigma_deg": representative_sigma,
+                            "orientation_delay_ms": representative_orientation_delay,
+                            "source_estimate_delay_ms": float(source_delay_ms),
+                            "source_delay_angular_lag_deg": trajectory.velocity_deg_s
+                            * float(source_delay_ms)
+                            / 1000.0,
+                            "separator_sdr_db": _sdr_value(separator_sdr),
+                            "separator_sdr_label": _sdr_label(separator_sdr),
+                            "leakage_linear": leakage,
+                            "ideal_stoi_vs_ideal_output": ideal_stoi,
+                            "stoi_vs_ideal_output": score,
+                            "stoi_loss_vs_ideal_output": ideal_stoi - score,
+                            "ideal_pesq_vs_ideal_output": ideal_pesq,
+                            "pesq_vs_ideal_output": pesq_score_mean,
+                            "pesq_loss_vs_ideal_output": ideal_pesq - pesq_score_mean,
+                        }
+                    )
+    return summarize_source_delay_stoi_rows(rows)
+
+
+def _bounded_stoi(estimate: np.ndarray, reference: np.ndarray, sample_rate_hz: int) -> float:
+    return min(1.0, max(0.0, stoi_score(estimate, reference, sample_rate_hz)))
 
 
 def run_separator_grid(
@@ -295,22 +511,24 @@ def separator_component_metrics(
     switch_time_s: float,
     window_s: float,
 ) -> dict[str, float]:
-    start = int(round(switch_time_s * sample_rate_hz))
-    stop = min(len(physical_a), start + int(round(window_s * sample_rate_hz)))
-    if stop <= start:
-        raise ValueError("empty post-switch analysis window")
-
-    target_in = physical_b[start:stop]
-    interferer_in = physical_a[start:stop]
-    estimate_target = estimate_b[start:stop]
-    estimate_interferer = estimate_a[start:stop]
-    gain_target = gain_b[start:stop, None]
-    gain_interferer = gain_a[start:stop, None]
-
-    target_out = gain_target * estimate_target + gain_interferer * leakage * estimate_target
-    interferer_out = gain_interferer * estimate_interferer + gain_target * leakage * estimate_interferer
-    output = target_out + interferer_out
-    input_mix = target_in + interferer_in
+    signals = separator_output_window(
+        physical_a=physical_a,
+        physical_b=physical_b,
+        estimate_a=estimate_a,
+        estimate_b=estimate_b,
+        gain_a=gain_a,
+        gain_b=gain_b,
+        leakage=leakage,
+        sample_rate_hz=sample_rate_hz,
+        switch_time_s=switch_time_s,
+        window_s=window_s,
+    )
+    target_in = signals["target_in"]
+    interferer_in = signals["interferer_in"]
+    target_out = signals["target_out"]
+    interferer_out = signals["interferer_out"]
+    output = signals["output"]
+    input_mix = signals["input_mix"]
 
     tir_improvements = [
         tir_improvement_db(target_in[:, ear], interferer_in[:, ear], target_out[:, ear], interferer_out[:, ear])
@@ -329,6 +547,77 @@ def separator_component_metrics(
         "output_si_sdr_physical_target_db": float(mean(output_si_sdr_physical)),
         "output_si_sdr_component_target_db": float(mean(output_si_sdr_component)),
     }
+
+
+def separator_output_window(
+    *,
+    physical_a: np.ndarray,
+    physical_b: np.ndarray,
+    estimate_a: np.ndarray,
+    estimate_b: np.ndarray,
+    gain_a: np.ndarray,
+    gain_b: np.ndarray,
+    leakage: float,
+    sample_rate_hz: int,
+    switch_time_s: float,
+    window_s: float,
+) -> dict[str, np.ndarray]:
+    start = int(round(switch_time_s * sample_rate_hz))
+    stop = min(len(physical_a), start + int(round(window_s * sample_rate_hz)))
+    if stop <= start:
+        raise ValueError("empty post-switch analysis window")
+
+    target_in = physical_b[start:stop]
+    interferer_in = physical_a[start:stop]
+    estimate_target = estimate_b[start:stop]
+    estimate_interferer = estimate_a[start:stop]
+    gain_target = gain_b[start:stop, None]
+    gain_interferer = gain_a[start:stop, None]
+
+    target_out = gain_target * estimate_target + gain_interferer * leakage * estimate_target
+    interferer_out = gain_interferer * estimate_interferer + gain_target * leakage * estimate_interferer
+    output = target_out + interferer_out
+    input_mix = target_in + interferer_in
+    return {
+        "target_in": target_in,
+        "interferer_in": interferer_in,
+        "estimate_target": estimate_target,
+        "estimate_interferer": estimate_interferer,
+        "target_out": target_out,
+        "interferer_out": interferer_out,
+        "output": output,
+        "input_mix": input_mix,
+    }
+
+
+def source_overlay_output_window(
+    *,
+    physical_a: np.ndarray,
+    physical_b: np.ndarray,
+    estimate_a: np.ndarray,
+    estimate_b: np.ndarray,
+    gain_a: np.ndarray,
+    gain_b: np.ndarray,
+    leakage: float,
+    sample_rate_hz: int,
+    switch_time_s: float,
+    window_s: float,
+) -> np.ndarray:
+    start = int(round(switch_time_s * sample_rate_hz))
+    stop = min(len(physical_a), start + int(round(window_s * sample_rate_hz)))
+    if stop <= start:
+        raise ValueError("empty post-switch analysis window")
+
+    physical_a_window = physical_a[start:stop]
+    physical_b_window = physical_b[start:stop]
+    estimate_a_window = estimate_a[start:stop]
+    estimate_b_window = estimate_b[start:stop]
+    boost_a = gain_a[start:stop, None] - 1.0
+    boost_b = gain_b[start:stop, None] - 1.0
+    estimate_a_leaky = estimate_a_window + leakage * estimate_b_window
+    estimate_b_leaky = estimate_b_window + leakage * estimate_a_window
+    live_scene = physical_a_window + physical_b_window
+    return live_scene + boost_a * estimate_a_leaky + boost_b * estimate_b_leaky
 
 
 def summarize_separator_rows(rows: list[dict]) -> list[dict]:
@@ -359,6 +648,63 @@ def summarize_separator_rows(rows: list[dict]) -> list[dict]:
         "output_tir_db",
         "output_si_sdr_physical_target_db",
         "output_si_sdr_component_target_db",
+    ]
+    summary = []
+    for key, values in sorted(grouped.items(), key=_summary_sort_key):
+        (
+            trajectory,
+            velocity,
+            sigma,
+            orientation_delay,
+            source_delay,
+            source_delay_lag,
+            separator_sdr_label,
+            separator_sdr,
+            leakage,
+        ) = key
+        item = {
+            "trajectory": trajectory,
+            "angular_velocity_deg_s": velocity,
+            "sigma_deg": sigma,
+            "orientation_delay_ms": orientation_delay,
+            "source_estimate_delay_ms": source_delay,
+            "source_delay_angular_lag_deg": source_delay_lag,
+            "separator_sdr_db": separator_sdr,
+            "separator_sdr_label": separator_sdr_label,
+            "leakage_linear": leakage,
+            "pair_count": len(values),
+        }
+        for field in fields:
+            stats = _stats_for([row[field] for row in values])
+            item[f"{field}_mean"] = stats["mean"]
+            item[f"{field}_sd"] = stats["sd"]
+            item[f"{field}_median"] = stats["median"]
+        summary.append(item)
+    return summary
+
+
+def summarize_source_delay_stoi_rows(rows: list[dict]) -> list[dict]:
+    grouped: dict[tuple, list[dict]] = {}
+    for row in rows:
+        key = (
+            row["trajectory"],
+            row["angular_velocity_deg_s"],
+            row["sigma_deg"],
+            row["orientation_delay_ms"],
+            row["source_estimate_delay_ms"],
+            row["source_delay_angular_lag_deg"],
+            row["separator_sdr_label"],
+            row["separator_sdr_db"],
+            row["leakage_linear"],
+        )
+        grouped.setdefault(key, []).append(row)
+    fields = [
+        "ideal_stoi_vs_ideal_output",
+        "stoi_vs_ideal_output",
+        "stoi_loss_vs_ideal_output",
+        "ideal_pesq_vs_ideal_output",
+        "pesq_vs_ideal_output",
+        "pesq_loss_vs_ideal_output",
     ]
     summary = []
     for key, values in sorted(grouped.items(), key=_summary_sort_key):
@@ -478,6 +824,7 @@ def compute_requirement_rows(summary_rows: list[dict], config: dict) -> list[dic
 def write_separator_figures(
     summary_rows: list[dict],
     requirement_rows: list[dict],
+    source_delay_plot_rows: list[dict],
     config: dict,
     heatmap_png: Path,
     heatmap_svg: Path,
@@ -526,7 +873,7 @@ def write_separator_figures(
         ax.set_title(f"{velocity:.0f} deg/s")
         ax.set_xticks(range(len(sdr_labels)), [_display_sdr_label(label) for label in sdr_labels])
         ax.set_yticks(range(len(sigmas)), [f"{sigma:.0f}" for sigma in sigmas])
-        ax.set_xlabel("separator setting")
+        ax.set_xlabel("separator SDR (dB)")
         if index == 0:
             ax.set_ylabel("sigma (deg)")
     fig.suptitle(
@@ -567,7 +914,7 @@ def write_separator_figures(
         ax.set_title(f"{velocity:.0f} deg/s")
         ax.set_xticks(x_positions, [_display_sdr_label(label) for label in sdr_labels])
         ax.set_ylim(0.0, 1.05)
-        ax.set_xlabel("separator setting")
+        ax.set_xlabel("separator SDR (dB)")
         if index == 0:
             ax.set_ylabel("fraction of ideal Delta TIR retained")
         if index == len(velocities) - 1:
@@ -577,79 +924,168 @@ def write_separator_figures(
     fig.savefig(envelope_svg)
     plt.close(fig)
 
-    source_delays = sorted({float(row["source_estimate_delay_ms"]) for row in summary_rows})
+    source_delay_rows = source_delay_plot_rows or summary_rows
+    source_delays = sorted({float(row["source_estimate_delay_ms"]) for row in source_delay_rows})
     representative_rows = [
         row
-        for row in summary_rows
+        for row in source_delay_rows
         if float(row["sigma_deg"]) == representative_sigma
         and float(row["orientation_delay_ms"]) == representative_orientation_delay
     ]
-    fig, axes = plt.subplots(2, len(velocities), figsize=(12.0, 6.1), constrained_layout=True)
-    if len(velocities) == 1:
-        axes = np.asarray(axes).reshape(2, 1)
-    plotted_tir_losses: list[float] = []
-    plotted_si_sdr_losses: list[float] = []
-    for column, velocity in enumerate(velocities):
-        rows = [
-            row
-            for row in representative_rows
-            if float(row["angular_velocity_deg_s"]) == velocity
-        ]
-        delay_baseline = {
-            str(row["separator_sdr_label"]): {
-                "tir": -float(row["tir_loss_vs_ideal_db_mean"]),
-                "si_sdr": max(0.0, -float(row["si_sdr_loss_vs_ideal_db_mean"])),
+    if representative_rows and "stoi_loss_vs_ideal_output_mean" in representative_rows[0]:
+        fig, axes = plt.subplots(2, len(velocities), figsize=(12.0, 6.1), constrained_layout=True)
+        if len(velocities) == 1:
+            axes = np.asarray(axes).reshape(2, 1)
+        plotted_stoi_losses: list[float] = []
+        plotted_pesq_losses: list[float] = []
+        for column, velocity in enumerate(velocities):
+            stoi_ax = axes[0, column]
+            pesq_ax = axes[1, column]
+            rows = [
+                row
+                for row in representative_rows
+                if float(row["angular_velocity_deg_s"]) == velocity
+            ]
+            for sdr_label in sdr_labels:
+                sdr_rows = sorted(
+                    [row for row in rows if str(row["separator_sdr_label"]) == sdr_label],
+                    key=lambda row: float(row["source_estimate_delay_ms"]),
+                )
+                if not sdr_rows:
+                    continue
+                x = [float(row["source_estimate_delay_ms"]) for row in sdr_rows]
+                stoi_y = [max(0.0, float(row["stoi_loss_vs_ideal_output_mean"])) for row in sdr_rows]
+                pesq_y = [max(0.0, float(row["pesq_loss_vs_ideal_output_mean"])) for row in sdr_rows]
+                plotted_stoi_losses.extend(stoi_y)
+                plotted_pesq_losses.extend(pesq_y)
+                label = _display_sdr_label(sdr_label)
+                stoi_ax.plot(
+                    x,
+                    stoi_y,
+                    marker="o",
+                    linewidth=1.7,
+                    markersize=3.4,
+                    label=label,
+                )
+                pesq_ax.plot(
+                    x,
+                    pesq_y,
+                    marker="o",
+                    linewidth=1.7,
+                    markersize=3.4,
+                    label=label,
+                )
+            stoi_ax.set_title(f"{velocity:.0f} deg/s")
+            for ax in (stoi_ax, pesq_ax):
+                ax.axhline(0.0, color="#555555", linestyle=":", linewidth=0.9)
+                ax.set_xlabel("source-estimate delay (ms)")
+                ax.set_xticks(source_delays, [f"{delay:.0f}" for delay in source_delays])
+                ax.set_xlim(min(source_delays), max(source_delays))
+            if column == 0:
+                stoi_ax.set_ylabel("STOI loss vs ideal output")
+                pesq_ax.set_ylabel("PESQ loss vs ideal output")
+            if column == len(velocities) - 1:
+                stoi_ax.legend(title="separator SDR (dB)", frameon=False, fontsize=8)
+        stoi_ymax = max(0.02, max(plotted_stoi_losses) * 1.12)
+        pesq_ymax = max(0.1, max(plotted_pesq_losses) * 1.12)
+        for column in range(len(velocities)):
+            axes[0, column].set_ylim(0.0, stoi_ymax)
+            axes[1, column].set_ylim(0.0, pesq_ymax)
+        fig.suptitle(
+            f"Source-overlay degradation vs ideal output, sigma={representative_sigma:.0f} deg",
+        )
+    else:
+        main_source_delays = sorted(float(value) for value in config["source_estimate_delay_ms"])
+        zoom_max_ms = float(config.get("figures", {}).get("source_delay_zoom_max_ms", 20.0))
+        fig, axes = plt.subplots(2, len(velocities), figsize=(12.0, 6.1), constrained_layout=True)
+        if len(velocities) == 1:
+            axes = np.asarray(axes).reshape(2, 1)
+        plotted_si_sdr_losses_full: list[float] = []
+        plotted_si_sdr_losses_zoom: list[float] = []
+        for column, velocity in enumerate(velocities):
+            rows = [
+                row
+                for row in representative_rows
+                if float(row["angular_velocity_deg_s"]) == velocity
+            ]
+            delay_baseline = {
+                str(row["separator_sdr_label"]): {
+                    "si_sdr": max(0.0, -float(row["si_sdr_loss_vs_ideal_db_mean"])),
+                }
+                for row in rows
+                if float(row["source_estimate_delay_ms"]) == 0.0
             }
-            for row in rows
-            if float(row["source_estimate_delay_ms"]) == 0.0
-        }
-        for sdr_label in sdr_labels:
-            sdr_rows = sorted(
-                [row for row in rows if str(row["separator_sdr_label"]) == sdr_label],
-                key=lambda row: float(row["source_estimate_delay_ms"]),
+            for sdr_label in sdr_labels:
+                sdr_rows = sorted(
+                    [row for row in rows if str(row["separator_sdr_label"]) == sdr_label],
+                    key=lambda row: float(row["source_estimate_delay_ms"]),
+                )
+                if not sdr_rows:
+                    continue
+                x = [float(row["source_estimate_delay_ms"]) for row in sdr_rows]
+                baseline = delay_baseline[str(sdr_label)]
+                physical_si_sdr_loss = [
+                    max(0.0, max(0.0, -float(row["si_sdr_loss_vs_ideal_db_mean"])) - baseline["si_sdr"])
+                    for row in sdr_rows
+                ]
+                full_pairs = [
+                    (delay, loss)
+                    for delay, loss in zip(x, physical_si_sdr_loss)
+                    if delay in main_source_delays
+                ]
+                zoom_pairs = [
+                    (delay, loss)
+                    for delay, loss in zip(x, physical_si_sdr_loss)
+                    if delay <= zoom_max_ms
+                ]
+                full_x = [item[0] for item in full_pairs]
+                full_loss = [item[1] for item in full_pairs]
+                zoom_x = [item[0] for item in zoom_pairs]
+                zoom_loss = [item[1] for item in zoom_pairs]
+                plotted_si_sdr_losses_full.extend(full_loss)
+                plotted_si_sdr_losses_zoom.extend(zoom_loss)
+                label = _display_sdr_label(sdr_label)
+                axes[0, column].plot(
+                    full_x,
+                    full_loss,
+                    marker="o",
+                    linewidth=1.6,
+                    markersize=3.0,
+                    label=label,
+                )
+                axes[1, column].plot(
+                    zoom_x,
+                    zoom_loss,
+                    marker="o",
+                    linewidth=1.6,
+                    markersize=3.0,
+                    label=label,
+                )
+            axes[0, column].set_title(f"{velocity:.0f} deg/s")
+            axes[0, column].axhline(0.0, color="#555555", linestyle=":", linewidth=0.9)
+            for row_index in (0, 1):
+                axes[row_index, column].set_xlabel("source-estimate delay (ms)")
+            axes[0, column].set_xticks(
+                main_source_delays,
+                [f"{delay:.0f}" for delay in main_source_delays],
             )
-            if not sdr_rows:
-                continue
-            x = [float(row["source_estimate_delay_ms"]) for row in sdr_rows]
-            baseline = delay_baseline[str(sdr_label)]
-            tir_loss = [
-                -float(row["tir_loss_vs_ideal_db_mean"]) - baseline["tir"]
-                for row in sdr_rows
-            ]
-            physical_si_sdr_loss = [
-                max(0.0, max(0.0, -float(row["si_sdr_loss_vs_ideal_db_mean"])) - baseline["si_sdr"])
-                for row in sdr_rows
-            ]
-            plotted_tir_losses.extend(tir_loss)
-            plotted_si_sdr_losses.extend(physical_si_sdr_loss)
-            label = _display_sdr_label(sdr_label)
-            axes[0, column].plot(x, tir_loss, marker="o", linewidth=1.6, markersize=3.0, label=label)
-            axes[1, column].plot(
-                x,
-                physical_si_sdr_loss,
-                marker="o",
-                linewidth=1.6,
-                markersize=3.0,
-                label=label,
-            )
-        axes[0, column].set_title(f"{velocity:.0f} deg/s")
-        axes[0, column].axhline(0.0, color="#555555", linestyle=":", linewidth=0.9)
-        for row_index in (0, 1):
-            axes[row_index, column].set_xticks(source_delays, [f"{delay:.0f}" for delay in source_delays])
-            axes[row_index, column].set_xlabel("source-estimate delay (ms)")
-        if column == 0:
-            axes[0, column].set_ylabel("Delta TIR loss vs 0 ms (dB)")
-            axes[1, column].set_ylabel("additional physical SI-SDR loss (dB)")
-        if column == len(velocities) - 1:
-            axes[0, column].legend(title="separator setting", frameon=False, fontsize=8)
-    tir_abs_max = max(0.1, max(abs(value) for value in plotted_tir_losses) * 1.12)
-    si_sdr_ymax = max(0.1, max(plotted_si_sdr_losses) * 1.08)
-    for column in range(len(velocities)):
-        axes[0, column].set_ylim(-tir_abs_max, tir_abs_max)
-        axes[1, column].set_ylim(0.0, si_sdr_ymax)
-    fig.suptitle(
-        f"Source-estimate delay diagnostics, sigma={representative_sigma:.0f} deg",
-    )
+            zoom_delays = [delay for delay in source_delays if delay <= zoom_max_ms]
+            axes[1, column].set_xticks(zoom_delays, [f"{delay:.0f}" for delay in zoom_delays])
+            if column == 0:
+                axes[0, column].set_ylabel("physical SI-SDR loss (dB)")
+                axes[1, column].set_ylabel("physical SI-SDR loss (dB)")
+            if column == len(velocities) - 1:
+                axes[0, column].legend(title="separator SDR (dB)", frameon=False, fontsize=8)
+        si_sdr_ymax = max(0.1, max(plotted_si_sdr_losses_full) * 1.08)
+        zoom_ymax = max(0.1, max(plotted_si_sdr_losses_zoom) * 1.08)
+        for column in range(len(velocities)):
+            axes[0, column].set_xlim(min(main_source_delays), max(main_source_delays))
+            axes[0, column].set_ylim(0.0, si_sdr_ymax)
+            axes[1, column].set_xlim(0.0, zoom_max_ms)
+            axes[1, column].set_ylim(0.0, zoom_ymax)
+        fig.suptitle(
+            f"Physical SI-SDR loss from source-estimate delay, sigma={representative_sigma:.0f} deg",
+        )
     fig.savefig(source_delay_png)
     fig.savefig(source_delay_svg)
     plt.close(fig)
@@ -735,9 +1171,9 @@ def _summary_markdown(
         "",
         "`xhat_b = delay(x_b) + kappa * delay(x_a)`",
         "",
-        "`kappa = 10 ** (-separator_sdr_db / 20)` for finite SDR values. `separator_sdr_db = inf` gives `kappa = 0`, meaning the ideal no-leakage separator. Figures display this condition as `ideal`; it is not a finite SDR greater than 20 dB.",
+        "`kappa = 10 ** (-separator_sdr_db / 20)` for finite SDR values. `separator_sdr_db = inf` gives `kappa = 0`, meaning the ideal no-leakage separator. It is not a finite SDR greater than 20 dB.",
         "",
-        "The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis and uses the same delay values as Experiment 4.",
+        "The detailed CSV preserves target and interference components through TIR and SI-SDR metrics. `source_estimate_delay_ms` is the separator-output delay axis. The source-delay figure uses STOI and PESQ to compare a degraded source-overlay output against the ideal zero-delay, no-leakage source-overlay output.",
         "",
         "## Ideal Separator Baseline",
         "",
@@ -773,7 +1209,7 @@ def _summary_markdown(
             "",
             "## Requirement Envelope",
             "",
-            "The table reports the lowest separator setting that satisfies both criteria for each condition:",
+            "The table reports the lowest separator SDR that satisfies both criteria for each condition:",
             "",
             f"- TIR retention >= {float(config.get('requirements', {}).get('tir_retention_fraction', 0.90)):.2f} of the ideal condition, where `tir_retention_fraction = condition Delta TIR / ideal Delta TIR`;",
             f"- component SI-SDR loss <= {float(config.get('requirements', {}).get('max_component_si_sdr_loss_db', 1.0)):.2f} dB relative to the ideal condition.",
@@ -805,9 +1241,9 @@ def _summary_markdown(
             "- Experiment 4 isolates delayed orientation control. Experiment 5 isolates separator-output delay and leakage by default, with `orientation_delay_ms = 0`.",
             "- The main degradation axis in this experiment is separator SDR, not source-estimate delay. A common delay applied to both source estimates changes absolute timing, but it has little effect on TIR because target and interference are delayed together.",
         "- Increasing leakage raises the residual contribution of the non-target source inside each separated estimate.",
-        "- Increasing source-estimate delay shifts both separated source images relative to the physical target reference; this is mainly visible in the physical-target SI-SDR diagnostic columns.",
-            "- The source-delay impact figure separates these effects: the upper row shows the signed TIR-loss change relative to the 0 ms source-delay case, while the lower row shows the additional latency penalty against the non-delayed physical target.",
-            "- The signed TIR-loss change can be slightly negative because source delay is applied to target and interference together and the metric is evaluated in a finite post-switch window.",
+            "- Increasing source-estimate delay shifts the separator reinforcement relative to the live binaural scene.",
+            "- The source-delay impact figure uses an overlay model: `output = live_scene + (gain - 1) * separated_estimate`, and compares each condition against the ideal zero-delay, no-leakage overlay using STOI and PESQ.",
+            "- TIR is intentionally not used in the source-delay panel because a common delay applied to both target and interference estimates can make finite-window TIR changes small and hard to interpret.",
             "- The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.",
         ]
     )
@@ -844,7 +1280,7 @@ def _separator_matrix_sections(
             [
                 f"### {velocity:.0f} deg/s",
                 "",
-                "| Separator setting | "
+                "| Separator SDR (dB) | "
                 + " | ".join(f"{delay:.0f} ms" for delay in source_delays)
                 + " |",
                 "|---:|" + "|".join("---:" for _ in source_delays) + "|",
@@ -966,7 +1402,7 @@ def _sdr_sort_value(label: str) -> float:
 
 
 def _display_sdr_label(label: str) -> str:
-    return "ideal" if str(label) in {"inf", "ideal"} else str(label)
+    return "inf" if str(label) in {"inf", "ideal"} else str(label)
 
 
 def _requirement_plot_value(label: str) -> float:
@@ -983,8 +1419,6 @@ def _requirement_label(row: dict | None, max_finite_sdr: float) -> str:
     if row is None:
         return "not_met"
     label = str(row["separator_sdr_label"])
-    if label == "inf":
-        return "ideal"
     return label
 
 

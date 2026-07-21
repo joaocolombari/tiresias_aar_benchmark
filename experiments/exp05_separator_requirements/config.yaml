@@ -39,9 +39,11 @@ requirements:
   max_component_si_sdr_loss_db: 1.0
 
 figures:
-  representative_sigma_deg: 20
+  representative_sigma_deg: 30
   representative_orientation_delay_ms: 0
   representative_source_delay_ms: 0
+  source_delay_metric: stoi_vs_ideal_output
+  source_delay_plot_delay_ms: [0, 20, 40, 80, 120, 160, 200]
 
 outputs:
   processed_dir: experiments/exp05_separator_requirements/processed
