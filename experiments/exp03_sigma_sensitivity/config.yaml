@@ -1,11 +1,30 @@
+experiment_id: exp03_sigma_sensitivity
+
+speech_dataset:
+  root: datasets/librispeech_dev_clean_200_seed_2026
+  manifest: manifest.csv
+  pair_count: 100
+  pair_seed: 20260720
+
+brir:
+  root: experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001/irs
+  repetitions: [1, 2]
+  angles_deg: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350]
+
 sources:
   - name: source_a
-    azimuth_deg: -45
-    distance_m: 1.0
+    azimuth_deg: -30
   - name: source_b
-    azimuth_deg: 45
-    distance_m: 1.0
-head_yaw_deg: [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]
+    azimuth_deg: 30
+
+head_yaw_deg: [-90, -80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
 sigma_deg: [10, 20, 30, 45, 60]
-bmax_db: 10.0
-reference_distance_m: 1.0
+
+speech_duration_s: 6.0
+bmax_db: 10
+
+outputs:
+  processed_dir: experiments/exp03_sigma_sensitivity/processed
+  metrics_dir: experiments/exp03_sigma_sensitivity/metrics
+  figures_dir: experiments/exp03_sigma_sensitivity/figures
+  overwrite: true

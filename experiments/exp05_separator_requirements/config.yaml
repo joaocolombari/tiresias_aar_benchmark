@@ -1,5 +1,50 @@
-sigma_deg: [10, 20, 45]
-orientation_delay_ms: [0, 40, 80, 160]
-source_estimate_delay_ms: [0, 40, 80, 160]
+experiment_id: exp05_separator_requirements
+
+speech_dataset:
+  root: datasets/librispeech_dev_clean_200_seed_2026
+  manifest: manifest.csv
+  pair_count: 100
+  pair_seed: 20260720
+
+brir:
+  root: experiments/exp02_brir_measurement/processed/exp02_campaign_20260718_001/irs
+  repetitions: [1, 2]
+  angles_deg: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350]
+
+sources:
+  - name: source_a
+    azimuth_deg: -30
+  - name: source_b
+    azimuth_deg: 30
+
+sigma_deg: [10, 20, 30, 45, 60]
+orientation_delay_ms: [0]
+source_estimate_delay_ms: [0, 20, 40, 80, 120, 160, 200]
 separator_sdr_db: [inf, 20, 10, 5, 0]
 angular_velocity_deg_s: [30, 60, 120]
+
+speech_duration_s: 6.0
+control_sample_rate_hz: 100
+hold_before_s: 1.0
+hold_after_s: 1.5
+start_yaw_deg: -30
+stop_yaw_deg: 30
+delay_mode: hold
+bmax_db: 10
+post_switch_analysis_window_s: 1.0
+
+requirements:
+  tir_retention_fraction: 0.90
+  si_sdr_loss_metric: component
+  max_component_si_sdr_loss_db: 1.0
+
+figures:
+  representative_sigma_deg: 20
+  representative_orientation_delay_ms: 0
+  representative_source_delay_ms: 0
+
+outputs:
+  processed_dir: experiments/exp05_separator_requirements/processed
+  metrics_dir: experiments/exp05_separator_requirements/metrics
+  figures_dir: experiments/exp05_separator_requirements/figures
+  overwrite: true

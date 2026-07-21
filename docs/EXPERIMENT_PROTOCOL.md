@@ -116,6 +116,20 @@ Use measured responses and offline monophonic speech. Vary `sigma_deg` while
 keeping target identity independent from the head hemisphere. Apply one scalar
 source gain to both ears of each source image.
 
+The implemented benchmark uses the same Experiment 2 BRIR bank and the same
+100 deterministic LibriSpeech pairs used in Experiments 4 and 5. The current
+geometry is source A at -30 deg and source B at +30 deg. Static head yaw is
+swept from -90 deg to +90 deg in 10 deg steps.
+
+For every head yaw and sigma, both target definitions are evaluated:
+
+- source A as target;
+- source B as target.
+
+This avoids choosing the target from the same head direction that drives the
+attention gain. The benchmark reports TIR improvement, SI-SDR improvement,
+target/interferer gain contrast and the full sigma-by-yaw operating surface.
+
 ## Experiment 4: Latency Sensitivity
 
 Use the physical head orientation for the measured BRIR acoustic response and
@@ -142,6 +156,38 @@ Emulate leakage:
 
 with `kappa = 10 ** (-separator_sdr_db / 20)`. Preserve target and interference
 components for metrics.
+
+The implemented benchmark uses the same measured BRIR bank, 100 LibriSpeech
+source pairs, source azimuths, sigma values, angular velocities and delay grid
+as Experiment 4. By default, Experiment 5 keeps `orientation_delay_ms = 0` and
+sweeps `source_estimate_delay_ms = [0, 20, 40, 80, 120, 160, 200]` so the
+separator-output delay is not confounded with the orientation-control delay
+already isolated in Experiment 4.
+
+The implemented separator model is:
+
+`xhat_a = delay(x_a) + kappa * delay(x_b)`
+
+`xhat_b = delay(x_b) + kappa * delay(x_a)`
+
+The requirement table reports the lowest tested separator SDR satisfying:
+
+- TIR retention at least 90% of the ideal zero-delay no-leakage condition;
+- component SI-SDR loss no greater than 1 dB relative to that ideal condition.
+
+The detailed metrics also preserve SI-SDR against the physical target timing,
+which is useful for diagnosing absolute source-estimate delay but is not used
+as the default separator-quality requirement because it rejects pure latency
+even when the separated components remain otherwise clean.
+
+The source-delay impact figure therefore reports two complementary views:
+
+- additional TIR loss relative to the `0 ms` source-estimate delay condition,
+  which remains small because both target and interference estimates are
+  delayed together;
+- additional SI-SDR loss against the non-delayed physical target, which
+  captures the temporal penalty of using a delayed separated reinforcement
+  signal over the acoustic scene.
 
 ## Experiment 6: Physical Validation
 
