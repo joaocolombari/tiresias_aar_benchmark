@@ -11,6 +11,7 @@ Source azimuths are `-30 deg` and `+30 deg`; the earlier `45 deg` protocol is no
 - Detailed rows: `experiments/exp05_separator_requirements/processed/exp05_separator_results.csv`
 - Condition summary: `experiments/exp05_separator_requirements/metrics/exp05_separator_summary_by_condition.csv`
 - Requirement table: `experiments/exp05_separator_requirements/metrics/exp05_separator_requirements.csv`
+- STOI requirement analysis: `experiments/exp05_separator_requirements/metrics/exp05_stoi_requirement_analysis.csv`
 - Separator-degradation heatmap: `experiments/exp05_separator_requirements/figures/exp05_separator_heatmaps.png`
 - TIR-retention curves: `experiments/exp05_separator_requirements/figures/exp05_requirement_envelope.png`
 - Source-delay impact figure: `experiments/exp05_separator_requirements/figures/exp05_source_delay_impact.png`
@@ -86,7 +87,43 @@ Mean dB loss relative to the ideal zero-delay, no-leakage separator, for `sigma=
 | inf | 0.00 | 0.00 | 0.00 | 0.09 | 0.17 | 0.21 | 0.24 |
 
 
-## Requirement Envelope
+## STOI Requirement Analysis
+
+For the intelligibility-oriented source-delay question, the acceptance criterion is based on the same quantity shown in the source-delay figure:
+
+- mean STOI loss <= 0.05 relative to the ideal zero-delay, no-leakage source-overlay output.
+
+Scope: `sigma=30 deg`, `orientation_delay_ms=0`, angular velocities 30/60/120 deg/s, and source-estimate delays 0/20/40/80/120/160/200 ms.
+
+This analysis is derived from `exp05_source_delay_plot_summary.csv`; no audio was reprocessed.
+
+| Velocity (deg/s) | Source delay (ms) | Minimum SDR label | Acceptable | STOI loss |
+|---:|---:|---:|:---:|---:|
+| 30 | 0 | 5 | true | 0.029 |
+| 30 | 20 | not_met | false | 0.246 |
+| 30 | 40 | not_met | false | 0.354 |
+| 30 | 80 | not_met | false | 0.440 |
+| 30 | 120 | not_met | false | 0.497 |
+| 30 | 160 | not_met | false | 0.516 |
+| 30 | 200 | not_met | false | 0.521 |
+| 60 | 0 | 5 | true | 0.041 |
+| 60 | 20 | not_met | false | 0.266 |
+| 60 | 40 | not_met | false | 0.389 |
+| 60 | 80 | not_met | false | 0.488 |
+| 60 | 120 | not_met | false | 0.549 |
+| 60 | 160 | not_met | false | 0.572 |
+| 60 | 200 | not_met | false | 0.569 |
+| 120 | 0 | 5 | true | 0.044 |
+| 120 | 20 | not_met | false | 0.276 |
+| 120 | 40 | not_met | false | 0.403 |
+| 120 | 80 | not_met | false | 0.510 |
+| 120 | 120 | not_met | false | 0.574 |
+| 120 | 160 | not_met | false | 0.591 |
+| 120 | 200 | not_met | false | 0.582 |
+
+Only the three zero-delay cases satisfy the STOI-loss criterion. No source-estimate delay of 20 ms or more satisfies the criterion, even under the ideal no-leakage separator.
+
+## Legacy Component/TIR Requirement Envelope
 
 The table reports the lowest separator SDR that satisfies both criteria for each condition:
 
@@ -147,4 +184,5 @@ The table reports the lowest separator SDR that satisfies both criteria for each
 - Increasing source-estimate delay shifts the separator reinforcement relative to the live binaural scene.
 - The source-delay impact figure uses an overlay model: `output = live_scene + (gain - 1) * separated_estimate`, and compares each condition against the ideal zero-delay, no-leakage overlay using STOI.
 - TIR is intentionally not used in the source-delay panel because a common delay applied to both target and interference estimates can make finite-window TIR changes small and hard to interpret.
-- The requirement envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.
+- The legacy component/TIR envelope is conservative because a condition must satisfy both TIR retention and component SI-SDR loss.
+- The intelligibility-oriented requirement analysis should be read from the STOI table above; it uses the same STOI-loss quantity plotted in the source-delay figure.
